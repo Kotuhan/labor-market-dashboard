@@ -1,5 +1,5 @@
 {
-  "name": "project-template",
+  "name": "labor-market-dashboard",
   "private": true,
   "packageManager": "pnpm@9.15.4",
   "engines": {

@@ -1,0 +1,93 @@
+{
+	"meta": {
+		"generatedAt": "2026-02-17T09:30:05.970Z",
+		"tasksAnalyzed": 10,
+		"totalTasks": 10,
+		"analysisCount": 10,
+		"thresholdScore": 5,
+		"projectName": "",
+		"usedResearch": false
+	},
+	"complexityAnalysis": [
+		{
+			"taskId": 1,
+			"taskTitle": "Setup React Labor Market Dashboard App",
+			"complexityScore": 4,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Break down the React app initialization into: 1) Create Vite React app with TypeScript in apps/labor-market-dashboard, 2) Configure Tailwind CSS and integrate with existing monorepo build system, 3) Set up package.json dependencies and turbo.json integration for dev/build commands",
+			"reasoning": "Medium complexity. While creating a new React app is straightforward, integrating with the existing Turborepo monorepo structure requires understanding the shared configs and ensuring proper workspace integration. The existing TypeScript configs and Turborepo setup provide good foundation."
+		},
+		{
+			"taskId": 2,
+			"taskTitle": "Define TypeScript Data Model and Tree Structure",
+			"complexityScore": 3,
+			"recommendedSubtasks": 2,
+			"expansionPrompt": "Split into: 1) Create core TypeScript interfaces (TreeNode, DashboardState, gender split types) with proper type definitions, 2) Implement utility functions for tree operations and type guards with comprehensive tests",
+			"reasoning": "Low-medium complexity. Creating TypeScript interfaces is relatively straightforward, but requires careful design for tree structure, gender splits, and state management. The existing strict TypeScript configuration will help catch errors early."
+		},
+		{
+			"taskId": 3,
+			"taskTitle": "Create Ukraine Labor Market Default Data",
+			"complexityScore": 6,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Break down data implementation: 1) Extract and structure gender-level data (52% male, 48% female), 2) Implement 15+ industry categories with percentages and gender splits, 3) Create 75+ subcategories with detailed breakdowns, 4) Add data validation and integrity checks to ensure percentages sum correctly",
+			"reasoning": "Medium-high complexity. Creating comprehensive hierarchical data with 75+ subcategories, ensuring mathematical accuracy (percentages sum to 100%), and maintaining data integrity requires significant attention to detail. The PRD contains extensive data that needs careful transcription and validation."
+		},
+		{
+			"taskId": 4,
+			"taskTitle": "Implement Core State Management and Auto-Balance Logic",
+			"complexityScore": 8,
+			"recommendedSubtasks": 5,
+			"expansionPrompt": "Complex state management breakdown: 1) Implement tree state management with React hooks, 2) Create auto-balance algorithm for locked/unlocked categories, 3) Build percentage redistribution logic when sliders change, 4) Implement free mode with independent sliders, 5) Add comprehensive edge case handling and state validation",
+			"reasoning": "High complexity. Auto-balance algorithm with locked categories, percentage redistribution, and maintaining tree consistency is mathematically complex. Requires handling multiple edge cases, state synchronization, and performance optimization for real-time updates."
+		},
+		{
+			"taskId": 5,
+			"taskTitle": "Build Interactive Slider Components",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Component development: 1) Create base slider component with range input, numerical input, and lock toggle, 2) Implement visual feedback, accessibility features, and mobile-responsive design, 3) Integrate with auto-balance hook and add smooth transitions",
+			"reasoning": "Medium complexity. Building reusable slider components with lock functionality, accessibility, and mobile support requires careful component design. Integration with auto-balance logic adds complexity but is manageable with proper separation of concerns."
+		},
+		{
+			"taskId": 6,
+			"taskTitle": "Implement Pie Chart Visualization Components",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Chart implementation: 1) Set up Recharts with animated pie charts for main gender distribution, 2) Create industry-specific charts with tooltips and legends, 3) Implement responsive design and color theming with accessibility considerations",
+			"reasoning": "Medium complexity. Using Recharts simplifies chart creation, but implementing multiple chart types (gender, industry distributions), animations, tooltips, and responsive design requires solid React and charting library knowledge."
+		},
+		{
+			"taskId": 7,
+			"taskTitle": "Create Expandable Tree Panel UI",
+			"complexityScore": 6,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Tree UI implementation: 1) Create collapsible tree structure with proper nesting visualization, 2) Implement expand/collapse animations and performance optimization for 75+ items, 3) Integrate slider components within tree nodes, 4) Add lazy loading and keyboard navigation for accessibility",
+			"reasoning": "Medium-high complexity. Building hierarchical UI with 75+ items requires performance considerations (lazy loading), complex animations, and proper accessibility. Integration with sliders within tree structure adds layout complexity."
+		},
+		{
+			"taskId": 8,
+			"taskTitle": "Build Dashboard Layout and Mode Controls",
+			"complexityScore": 5,
+			"recommendedSubtasks": 3,
+			"expansionPrompt": "Layout implementation: 1) Create responsive dashboard layout with header controls and mode toggle, 2) Implement population input with formatting and validation, 3) Add reset functionality, warning indicators, and responsive grid system",
+			"reasoning": "Medium complexity. Creating responsive layouts with mode toggles, input validation, and warning systems requires good CSS/layout skills and state management. Integration with existing components adds coordination complexity."
+		},
+		{
+			"taskId": 9,
+			"taskTitle": "Integrate All Components and Add Real-time Updates",
+			"complexityScore": 7,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Integration and optimization: 1) Wire all components with shared state management, 2) Optimize performance for <100ms updates with React.memo and useMemo, 3) Implement smooth animations and Ukrainian locale formatting, 4) Add comprehensive performance testing and memory leak prevention",
+			"reasoning": "High complexity. Integrating multiple complex components while maintaining <100ms performance, preventing memory leaks, and ensuring smooth animations requires advanced React optimization techniques and careful performance monitoring."
+		},
+		{
+			"taskId": 10,
+			"taskTitle": "Polish UI/UX and Deploy to GitHub Pages",
+			"complexityScore": 6,
+			"recommendedSubtasks": 4,
+			"expansionPrompt": "Final polish and deployment: 1) Apply final Tailwind CSS styling and responsive design optimizations, 2) Implement accessibility improvements and SEO meta tags, 3) Optimize bundle size and run Lighthouse audits, 4) Set up GitHub Actions deployment pipeline for GitHub Pages",
+			"reasoning": "Medium-high complexity. Final polish involves multiple technical areas: advanced CSS/styling, accessibility compliance, performance optimization, SEO, and CI/CD setup. Achieving Lighthouse scores >90 and <500KB bundle size requires optimization expertise."
+		}
+	]
+}

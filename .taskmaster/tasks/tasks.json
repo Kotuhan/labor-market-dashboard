@@ -1,5 +1,367 @@
 {
   "master": {
-    "tasks": []
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Setup React Labor Market Dashboard App",
+        "description": "Create new React app with TypeScript configuration for the Labor Market Dashboard",
+        "details": "Initialize a new React application in apps/labor-market-dashboard using Vite as the build tool. Configure TypeScript with strict mode, set up Tailwind CSS for styling, and integrate with the existing Turborepo configuration. Include package.json with React 18+, TypeScript, Vite, Tailwind CSS, and configure build/dev scripts to work with the monorepo structure.",
+        "testStrategy": "Verify app starts correctly with 'pnpm dev', builds successfully with 'pnpm build', and integrates properly with turbo commands. Test TypeScript compilation and Tailwind CSS integration.",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 2,
+        "title": "Define TypeScript Data Model and Tree Structure",
+        "description": "Implement the core TypeScript interfaces for tree data structure and state management",
+        "details": "Create src/types/tree.ts with TreeNode interface containing id, label, percentage, absoluteValue, genderSplit, children, defaultPercentage, and isLocked properties. Define DashboardState interface for totalPopulation, balanceMode, and tree root. Implement utility types for gender split calculations and balance modes ('auto' | 'free').",
+        "testStrategy": "Unit tests for type definitions, test tree node creation and manipulation, validate TypeScript compilation without errors, test interface compatibility with expected data structures.",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 3,
+        "title": "Create Ukraine Labor Market Default Data",
+        "description": "Implement comprehensive Ukrainian labor market data based on PRD specifications",
+        "details": "Create src/data/defaultTree.ts with complete 3-level hierarchy: gender (52% male, 48% female) → 15+ industries → 75+ subcategories. Include all data from PRD sections 6 and Appendix with exact percentages, absolute values (13,500k total), and gender splits for each category. Structure data as nested TreeNode objects matching the TypeScript interfaces.",
+        "testStrategy": "Validate data integrity: percentages sum to 100% at each level, absolute values calculate correctly, all required categories present, gender splits are realistic, test data loading and tree traversal.",
+        "priority": "high",
+        "dependencies": [
+          2
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Extract and Structure Gender-Level Data Foundation",
+            "description": "Create the foundational data structure with gender split (52% male, 48% female) and establish the TypeScript interfaces and basic tree structure",
+            "dependencies": [],
+            "details": "Create src/data/defaultTree.ts file and implement TreeNode TypeScript interfaces. Define the root gender level with 52% male (7,020k people) and 48% female (6,480k people) totaling 13,500k. Set up the nested data structure foundation that will support the 3-level hierarchy (gender → industries → subcategories). Include proper TypeScript types for all data fields including percentages, absolute values, and nested children arrays.",
+            "status": "pending",
+            "testStrategy": "Validate that gender percentages sum to 100%, absolute values total 13,500k, TypeScript interfaces compile correctly, and basic tree structure is properly defined"
+          },
+          {
+            "id": 2,
+            "title": "Implement 15+ Industry Categories with Gender Splits",
+            "description": "Add all industry categories from PRD Section 6 with accurate percentages and gender distribution for each industry",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement the complete set of 15+ industry categories from the PRD, including: Agriculture/Forestry, Manufacturing, Construction, Trade, Transport, Hospitality, Information/Communication, Finance, Real Estate, Professional Services, Public Administration, Education, Healthcare, Arts/Entertainment, and Other Services. Each industry must include total percentage of workforce, absolute values, and gender split percentages. Ensure mathematical accuracy where all industry percentages sum to 100% within each gender category.",
+            "status": "pending",
+            "testStrategy": "Verify all industries sum to 100% for both male and female categories, validate absolute values calculate correctly from percentages, ensure all required industries from PRD are included"
+          },
+          {
+            "id": 3,
+            "title": "Create 75+ Detailed Subcategories Structure",
+            "description": "Implement comprehensive subcategory breakdown for each industry with detailed data from PRD Appendix",
+            "dependencies": [
+              2
+            ],
+            "details": "Add all 75+ subcategories from the PRD Appendix, organized under their respective industry parents. Each subcategory must include specific percentages within its parent industry, absolute worker counts, and gender distribution. Examples include subcategories like 'Crop Production', 'Livestock', 'Food Manufacturing', 'Textile Production', etc. Maintain the hierarchical structure where subcategories nest under industries which nest under gender categories. Ensure data consistency and mathematical accuracy throughout the hierarchy.",
+            "status": "pending",
+            "testStrategy": "Validate that subcategory percentages sum to 100% within each parent industry, verify absolute values flow correctly through the hierarchy, test that all 75+ subcategories from PRD are implemented"
+          },
+          {
+            "id": 4,
+            "title": "Add Data Validation and Integrity Checks",
+            "description": "Implement comprehensive validation functions to ensure data mathematical accuracy and integrity across all hierarchy levels",
+            "dependencies": [
+              3
+            ],
+            "details": "Create validation functions that verify: 1) All percentages sum to 100% at each hierarchy level, 2) Absolute values calculate correctly from percentages and parent totals, 3) Gender splits are realistic and consistent, 4) All required categories from PRD are present, 5) No data inconsistencies exist. Add automated checks that can be run during build/test phases. Include error reporting for any data integrity issues. Create helper functions for data traversal and mathematical verification of the complete tree structure.",
+            "status": "pending",
+            "testStrategy": "Run validation functions against complete dataset, verify all mathematical relationships are correct, test error detection for intentionally broken data, ensure validation covers all hierarchy levels and data fields"
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Implement Core State Management and Auto-Balance Logic",
+        "description": "Build state management system with auto-balance algorithm for slider interactions",
+        "details": "Create src/hooks/useTreeState.ts for managing tree state and src/hooks/useAutoBalance.ts for rebalancing logic. Implement algorithm from PRD pseudo-code: when slider changes, locked categories remain fixed, remaining percentage redistributed proportionally among unlocked siblings. Include free mode where sliders are independent. Use React.useReducer or Zustand for state management with actions for percentage updates, lock toggling, and mode switching.",
+        "testStrategy": "Unit tests for auto-balance algorithm edge cases, test locked/unlocked category behavior, verify percentage calculations remain within 0-100% bounds, test mode switching functionality, validate absolute value recalculations.",
+        "priority": "high",
+        "dependencies": [
+          3
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Implement Core Tree State Management Hook",
+            "description": "Create useTreeState.ts hook with React.useReducer for managing tree data structure, population updates, and basic state operations",
+            "dependencies": [],
+            "details": "Build src/hooks/useTreeState.ts using React.useReducer pattern. Implement state structure for tree nodes, total population, and current balance mode. Create actions for updating node percentages, toggling lock states, setting population, and switching balance modes. Include state validation to ensure data integrity and type safety with TypeScript interfaces.",
+            "status": "pending",
+            "testStrategy": "Unit tests for state reducer actions, test state updates and immutability, validate TypeScript type safety, test population changes and their effects on absolute values"
+          },
+          {
+            "id": 2,
+            "title": "Build Auto-Balance Algorithm Core Logic",
+            "description": "Implement the mathematical auto-balance algorithm that redistributes percentages when sliders change while respecting locked categories",
+            "dependencies": [
+              1
+            ],
+            "details": "Create src/hooks/useAutoBalance.ts with the core redistribution algorithm. When a slider changes: 1) Calculate remaining percentage after locked categories, 2) Distribute proportionally among unlocked siblings, 3) Maintain parent-child percentage relationships, 4) Handle edge cases like all siblings locked or insufficient percentage. Use precise decimal calculations to avoid floating-point errors.",
+            "status": "pending",
+            "testStrategy": "Comprehensive unit tests for algorithm edge cases: all locked scenarios, single unlocked category, zero percentages, boundary conditions (0-100%), mathematical precision validation"
+          },
+          {
+            "id": 3,
+            "title": "Implement Percentage Redistribution Logic",
+            "description": "Build the percentage redistribution system that handles slider interactions and maintains tree consistency across all levels",
+            "dependencies": [
+              2
+            ],
+            "details": "Extend useAutoBalance.ts with multi-level tree redistribution. When a node percentage changes: 1) Update absolute values based on parent's population, 2) Recalculate sibling percentages using auto-balance algorithm, 3) Propagate changes up the tree to maintain 100% totals, 4) Update child node absolute values recursively. Ensure real-time updates without performance issues.",
+            "status": "pending",
+            "testStrategy": "Integration tests for multi-level updates, test cascading percentage changes, validate absolute value calculations, performance tests for real-time slider interactions, test tree consistency maintenance"
+          },
+          {
+            "id": 4,
+            "title": "Add Free Mode Implementation",
+            "description": "Implement free mode where sliders operate independently without auto-balance constraints",
+            "dependencies": [
+              3
+            ],
+            "details": "Extend state management to support free mode alongside auto-balance mode. In free mode: 1) Allow independent slider adjustments without redistribution, 2) Permit totals that don't sum to 100%, 3) Show warning indicators for inconsistent percentages, 4) Maintain absolute value calculations based on actual percentages, 5) Provide smooth mode switching with state preservation where possible.",
+            "status": "pending",
+            "testStrategy": "Test mode switching functionality, validate independent slider behavior in free mode, test warning indicators for invalid totals, verify state preservation during mode changes, test edge cases when switching between modes"
+          },
+          {
+            "id": 5,
+            "title": "Add Comprehensive Edge Case Handling and State Validation",
+            "description": "Implement robust error handling, input validation, and edge case management for the complete state management system",
+            "dependencies": [
+              4
+            ],
+            "details": "Add comprehensive validation and error handling: 1) Input sanitization for percentage and population values, 2) Boundary checking (0-100% for percentages, positive values for population), 3) Circular dependency prevention in tree updates, 4) Recovery mechanisms for invalid states, 5) Performance optimizations for large trees, 6) Debug logging and error reporting for development.",
+            "status": "pending",
+            "testStrategy": "Stress testing with invalid inputs, test recovery from corrupted states, validate performance with large datasets (1000+ nodes), test memory usage and cleanup, error boundary testing, accessibility validation for state changes"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Build Interactive Slider Components",
+        "description": "Create reusable slider component with lock functionality and numerical input",
+        "details": "Develop src/components/Slider/ with range slider (0-100%), numerical input field, lock/unlock toggle button, and percentage/absolute value display. Use rc-slider or custom HTML5 range input. Include visual feedback for locked state, smooth transitions, and touch-friendly design for mobile. Integrate with auto-balance logic from useAutoBalance hook.",
+        "testStrategy": "Test slider interactions across different devices, validate lock functionality prevents changes during auto-balance, verify numerical input synchronization, test edge cases (0%, 100%), ensure accessibility with proper ARIA labels.",
+        "priority": "medium",
+        "dependencies": [
+          4
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Implement Pie Chart Visualization Components",
+        "description": "Create animated pie charts using Recharts for gender and industry distribution",
+        "details": "Build src/components/PieChart/ using Recharts library with smooth animations, tooltips showing percentages and absolute values, legend components, and responsive design. Create separate charts for: main gender split, male industry distribution, female industry distribution, and expandable subcategory mini-charts. Use color palette from PRD (blue #3B82F6 for male, pink #EC4899 for female, diverse colors for industries).",
+        "testStrategy": "Test chart rendering performance, verify tooltip data accuracy, test animations and transitions (60fps target), validate responsive behavior on different screen sizes, test accessibility with screen readers.",
+        "priority": "medium",
+        "dependencies": [
+          4
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "Create Expandable Tree Panel UI",
+        "description": "Build hierarchical tree interface for navigating industry categories and subcategories",
+        "details": "Develop src/components/TreePanel/ with collapsible/expandable industry sections, nested subcategory display, integration with slider components, and visual hierarchy indicators. Include expand/collapse animations, proper indentation for tree levels, and efficient rendering for 75+ subcategories. Implement lazy loading for subcategories to improve performance.",
+        "testStrategy": "Test expand/collapse functionality across all industry categories, verify proper nesting visualization, test performance with all categories expanded, validate keyboard navigation and accessibility, test on mobile devices.",
+        "priority": "medium",
+        "dependencies": [
+          5
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create TreePanel Component Structure and Basic UI",
+            "description": "Build the foundational TreePanel component with proper file structure, TypeScript interfaces, and basic tree rendering without animations",
+            "dependencies": [],
+            "details": "Create src/components/TreePanel/ directory with index.tsx, TreeNode.tsx, TreePanel.tsx, and types.ts. Define TreeNode interface with id, label, children, isExpanded, and slider properties. Implement basic tree structure rendering with proper indentation (padding-left increments) and expand/collapse toggle buttons. Add visual hierarchy indicators using borders, background colors, and typography scaling.",
+            "status": "pending",
+            "testStrategy": "Test basic tree rendering, verify proper nesting structure, validate TypeScript interfaces, test expand/collapse state management without animations"
+          },
+          {
+            "id": 2,
+            "title": "Implement Expand/Collapse Animations and Performance Optimization",
+            "description": "Add smooth expand/collapse animations and implement performance optimizations for handling 75+ tree items efficiently",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement CSS transitions and React.memo for tree nodes to optimize re-renders. Add height-based animations for expand/collapse using CSS transforms or Framer Motion. Implement virtual scrolling or windowing for large lists using react-window. Add useCallback and useMemo optimizations for tree operations. Include loading states and skeleton components for smooth UX.",
+            "status": "pending",
+            "testStrategy": "Test animation smoothness (60fps target), measure rendering performance with 75+ items expanded, validate memory usage and re-render optimization, test scroll performance on mobile devices"
+          },
+          {
+            "id": 3,
+            "title": "Integrate Slider Components Within Tree Nodes",
+            "description": "Embed interactive slider components into tree nodes with proper layout and state management integration",
+            "dependencies": [
+              2
+            ],
+            "details": "Import and integrate Slider components from Task 5 into tree nodes. Design responsive layout that accommodates sliders without breaking tree indentation. Implement state management for slider values within tree context. Add conditional rendering - sliders only appear for leaf nodes (subcategories). Handle slider lock states and auto-balance integration. Ensure sliders don't interfere with expand/collapse interactions.",
+            "status": "pending",
+            "testStrategy": "Test slider integration within different tree levels, verify slider functionality doesn't conflict with tree interactions, validate responsive layout on mobile, test auto-balance behavior within tree context"
+          },
+          {
+            "id": 4,
+            "title": "Add Lazy Loading and Keyboard Navigation Accessibility",
+            "description": "Implement lazy loading for subcategories and comprehensive keyboard navigation with accessibility features",
+            "dependencies": [
+              3
+            ],
+            "details": "Implement lazy loading pattern where subcategories are only rendered when parent category is expanded. Add keyboard navigation (Arrow keys for navigation, Enter/Space for expand/collapse, Tab for slider focus). Include proper ARIA attributes (aria-expanded, aria-level, role='tree'). Add focus management and visual focus indicators. Implement screen reader announcements for tree state changes. Add keyboard shortcuts documentation.",
+            "status": "pending",
+            "testStrategy": "Test lazy loading performance improvements, validate keyboard navigation functionality across all tree levels, test with screen readers (NVDA/JAWS), verify ARIA compliance, test focus management and visual indicators"
+          }
+        ]
+      },
+      {
+        "id": 8,
+        "title": "Build Dashboard Layout and Mode Controls",
+        "description": "Create main dashboard layout with header controls, population input, and mode toggle",
+        "details": "Implement src/components/ModeToggle/ for auto/free balance switching, src/components/SummaryBar/ for total population input and statistics display, and main App.tsx layout following PRD wireframe structure. Include reset to defaults button, warning indicators when percentages don't sum to 100% in free mode, and responsive grid layout for desktop/tablet/mobile.",
+        "testStrategy": "Test layout responsiveness across screen sizes (320px+ mobile, 1024px+ desktop), verify mode toggle functionality, validate population input formatting and calculations, test reset functionality with confirmation modal.",
+        "priority": "medium",
+        "dependencies": [
+          6,
+          7
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Integrate All Components and Add Real-time Updates",
+        "description": "Connect all components with state management for seamless real-time interactions",
+        "details": "Wire up all components in App.tsx with shared state, implement <100ms update performance for slider-to-chart synchronization, add smooth CSS transitions and animations, optimize re-rendering with React.memo and useMemo. Include calculation utilities in src/utils/ for absolute value updates and number formatting with Ukrainian locale (space as thousands separator).",
+        "testStrategy": "Performance testing with Lighthouse (target >90), measure slider-to-chart update latency (<100ms), test with multiple simultaneous slider interactions, validate smooth animations at 60fps, test memory usage and potential leaks.",
+        "priority": "medium",
+        "dependencies": [
+          8
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Set up shared state management and component integration",
+            "description": "Wire up all components in App.tsx with shared state management system, connecting sliders, charts, and tree navigation components through the useTreeState hook",
+            "dependencies": [],
+            "details": "Integrate all components (sliders, charts, tree navigation) in App.tsx using the useTreeState hook. Set up prop drilling or context provider pattern to share state between components. Ensure proper data flow from state management to all UI components. Configure the main application layout and component hierarchy.",
+            "status": "pending",
+            "testStrategy": "Test component integration by verifying state changes propagate correctly between all components, validate prop passing and context consumption"
+          },
+          {
+            "id": 2,
+            "title": "Implement performance optimization with React.memo and useMemo",
+            "description": "Optimize component re-rendering performance to achieve <100ms update latency for slider-to-chart synchronization using React optimization techniques",
+            "dependencies": [
+              1
+            ],
+            "details": "Apply React.memo to prevent unnecessary re-renders of components that haven't changed. Implement useMemo for expensive calculations like chart data transformations and tree traversals. Use useCallback for event handlers to prevent function recreation. Add performance monitoring to measure slider-to-chart update latency and ensure it stays under 100ms.",
+            "status": "pending",
+            "testStrategy": "Use React DevTools Profiler to measure render times, test slider interactions with performance monitoring to verify <100ms update latency, validate memory usage stability"
+          },
+          {
+            "id": 3,
+            "title": "Add smooth animations and Ukrainian locale formatting utilities",
+            "description": "Implement smooth CSS transitions and animations for UI interactions, plus create calculation utilities with Ukrainian number formatting",
+            "dependencies": [
+              1
+            ],
+            "details": "Add smooth CSS transitions for slider movements, chart updates, and UI state changes. Implement 60fps animations using CSS transforms and transitions. Create src/utils/calculations.ts with functions for absolute value calculations and Ukrainian locale number formatting (space as thousands separator). Include utility functions for percentage-to-absolute conversions.",
+            "status": "pending",
+            "testStrategy": "Validate animations run at 60fps using browser dev tools, test Ukrainian number formatting with various values, verify smooth transitions during rapid slider interactions"
+          },
+          {
+            "id": 4,
+            "title": "Comprehensive performance testing and memory leak prevention",
+            "description": "Implement thorough performance testing suite and memory leak prevention measures to ensure stable long-term application performance",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Set up comprehensive performance testing using Lighthouse to achieve >90 performance score. Implement memory leak detection and prevention strategies including proper cleanup of event listeners, intervals, and component unmounting. Add performance monitoring for multiple simultaneous slider interactions and validate stable memory usage over extended use periods.",
+            "status": "pending",
+            "testStrategy": "Run Lighthouse performance audits targeting >90 score, conduct memory leak tests with Chrome DevTools memory profiler, test sustained slider interactions for memory stability, validate performance under stress conditions"
+          }
+        ]
+      },
+      {
+        "id": 10,
+        "title": "Polish UI/UX and Deploy to GitHub Pages",
+        "description": "Final UI polish, accessibility improvements, and GitHub Pages deployment setup",
+        "details": "Apply final styling with Tailwind CSS following PRD color scheme, implement responsive design optimizations, add proper meta tags and OG tags for SEO, optimize bundle size (<500KB gzipped), ensure Lighthouse scores >90 for Performance and Accessibility. Set up GitHub Actions for automatic deployment to GitHub Pages on main branch pushes, configure base path for GitHub Pages hosting.",
+        "testStrategy": "Run full Lighthouse audit, test across all major browsers (Chrome, Firefox, Safari, Edge), validate accessibility with screen readers, test deployment pipeline with GitHub Actions, verify live site functionality on GitHub Pages.",
+        "priority": "medium",
+        "dependencies": [
+          9
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Apply final Tailwind CSS styling and responsive design",
+            "description": "Implement comprehensive UI styling using Tailwind CSS following the PRD color scheme and ensure responsive design across all device sizes",
+            "dependencies": [],
+            "details": "Apply final styling with Tailwind CSS using the specified color palette (blue #3B82F6 for male, pink #EC4899 for female). Implement responsive design optimizations for mobile, tablet, and desktop viewports. Update all components to use consistent spacing, typography, and visual hierarchy. Ensure proper hover states, focus indicators, and interactive feedback. Test across different screen sizes and orientations to guarantee optimal user experience on all devices.",
+            "status": "pending",
+            "testStrategy": "Visual regression testing across multiple breakpoints, cross-browser compatibility testing, validate color contrast ratios meet WCAG guidelines"
+          },
+          {
+            "id": 2,
+            "title": "Implement accessibility improvements and SEO meta tags",
+            "description": "Add comprehensive accessibility features and SEO optimization including meta tags, OG tags, and semantic HTML improvements",
+            "dependencies": [
+              1
+            ],
+            "details": "Implement ARIA labels, roles, and properties for all interactive components. Add proper semantic HTML structure with headings hierarchy. Implement keyboard navigation support and focus management. Add comprehensive meta tags including title, description, keywords, and Open Graph tags for social sharing. Ensure proper alt text for images and charts. Implement skip links and landmark navigation for screen readers.",
+            "status": "pending",
+            "testStrategy": "Run axe-core accessibility audits, test with screen readers (NVDA, JAWS), validate keyboard navigation, verify meta tag implementation with social media debugging tools"
+          },
+          {
+            "id": 3,
+            "title": "Optimize bundle size and run Lighthouse performance audits",
+            "description": "Optimize application bundle size to under 500KB gzipped and achieve Lighthouse scores >90 for Performance and Accessibility",
+            "dependencies": [
+              2
+            ],
+            "details": "Implement code splitting and lazy loading for components. Optimize images and assets compression. Remove unused dependencies and dead code. Implement tree shaking and minimize bundle size. Configure webpack/Vite optimizations for production builds. Run comprehensive Lighthouse audits and address performance bottlenecks. Optimize Core Web Vitals including LCP, FID, and CLS metrics.",
+            "status": "pending",
+            "testStrategy": "Run Lighthouse audits targeting >90 scores for Performance and Accessibility, validate bundle size <500KB gzipped, test loading performance on slow 3G networks"
+          },
+          {
+            "id": 4,
+            "title": "Set up GitHub Actions deployment pipeline for GitHub Pages",
+            "description": "Configure automated deployment system using GitHub Actions to deploy the application to GitHub Pages on main branch pushes",
+            "dependencies": [
+              3
+            ],
+            "details": "Create .github/workflows/deploy.yml with Node.js setup, dependency installation, production build, and GitHub Pages deployment. Configure base path for GitHub Pages hosting. Set up proper permissions and secrets for automated deployment. Implement build optimization and caching strategies. Configure custom domain if needed and ensure HTTPS enforcement. Test the complete deployment pipeline from push to live site.",
+            "status": "pending",
+            "testStrategy": "Test complete CI/CD pipeline with sample commits, verify successful deployment to GitHub Pages, validate live site functionality and proper routing with base path configuration"
+          }
+        ]
+      }
+    ],
+    "metadata": {
+      "created": "2026-02-17T09:25:31.553Z",
+      "updated": "2026-02-17T09:25:31.553Z",
+      "description": "Tasks for master context"
+    }
   }
 }

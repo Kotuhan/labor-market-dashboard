@@ -7,23 +7,42 @@
 User writes in Ukrainian, Claude responds in English.
 ## Project Overview
 
-<!-- Describe your project here -->
+**Labor Market Dashboard Calculator** — interactive SPA for modeling "what-if" scenarios on Ukraine's labor market. Tree-structured data (gender → industry → subcategory) with real-time sliders and pie charts. No backend, hosted on GitHub Pages.
+
+- **Total employed (default)**: 13 500 000
+- **Gender split**: 52% male / 48% female
+- **Industries**: 15+ KVED sectors
+- **Subcategories**: 75+ detailed breakdowns
+- **Slider modes**: auto-balance (100% constraint) and free (independent)
 
 ## Tech Stack
 
-<!-- List your technology choices -->
 - **Monorepo**: Turborepo + pnpm workspaces
+- **App**: React 18+ with TypeScript (strict)
+- **Build**: Vite
+- **Styling**: Tailwind CSS
+- **Charts**: Recharts
+- **State**: Zustand / useReducer
+- **Tests**: Vitest + React Testing Library
+- **Hosting**: GitHub Pages via GitHub Actions
 
 ## Project Structure
 
 ```
-apps/                # Application packages (add your apps here)
-packages/config/     # Shared ESLint, TS configs
-architecture/        # Architecture docs (ADRs, contracts, diagrams, roadmap, runbooks)
-docs/                # Documentation, tasks (see docs/CLAUDE.md)
-knowledgebase/       # Central research repository (managed by Researcher agent)
-.claude/             # Claude Code configuration
-.taskmaster/         # Task Master AI integration
+apps/
+  labor-market-dashboard/    # Main React SPA (Vite + React + TS)
+    src/
+      components/            # Slider, PieChart, TreePanel, ModeToggle, SummaryBar, ResetButton
+      data/                  # defaultTree.ts — Ukraine labor market defaults
+      hooks/                 # useTreeState, useAutoBalance
+      types/                 # TreeNode, DashboardState interfaces
+      utils/                 # calculations.ts, format.ts
+packages/config/             # Shared ESLint, TS configs
+architecture/                # ADRs, contracts, diagrams, roadmap, runbooks
+docs/                        # Documentation, tasks (see docs/CLAUDE.md)
+knowledgebase/               # Central research repository (managed by Researcher agent)
+.claude/                     # Claude Code configuration
+.taskmaster/                 # Task Master AI integration
 ```
 
 ## Module Documentation
