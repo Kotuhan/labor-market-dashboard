@@ -169,3 +169,12 @@ This file tracks all agent runs and workflow transitions for this task.
 - **Summary**: DashboardHeader (109 lines, h1 title, population input, ModeToggle + ResetButton). formatPopulation utility. 22 new tests (273 total). QA approved.
 - **Remaining subtasks**: 2 of 5
 
+---
+
+## 2026-02-17 21:25 - Subtask 8.4 Complete
+
+- **Subtask**: 8.4-gender-section-pie-charts
+- **Commit**: 03a5378
+- **Summary**: GenderSection (44 lines, TreePanel + PieChartPanel wrapper). Mini subcategory pie charts in TreeRow for expanded nodes. 13 new tests (286 total). QA approved.
+- **Remaining subtasks**: 1 of 5
+

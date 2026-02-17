@@ -54,3 +54,28 @@ This file tracks all agent runs and workflow transitions for this subtask.
 - **Summary**: GenderSection is a thin wrapper, mini pie charts follow established PieChartPanel patterns. Will be documented in parent context-update.
 - **Next stage**: git-commit
 
+---
+
+## 2026-02-17 21:25 - Git Commit
+
+- **Agent**: director (git-commit)
+- **Result**: completed
+- **Commit**: 03a5378
+- **Commit message**: Add GenderSection wrapper and mini subcategory pie charts (task-008.4)
+- **Next stage**: done
+
+---
+
+## 2026-02-17 21:25 - Subtask Complete
+
+- **Final Status**: DONE
+- **Files Created**:
+  - apps/labor-market-dashboard/src/components/GenderSection.tsx
+  - apps/labor-market-dashboard/src/__tests__/components/GenderSection.test.tsx
+- **Files Modified**:
+  - apps/labor-market-dashboard/src/components/TreeRow.tsx
+  - apps/labor-market-dashboard/src/__tests__/components/TreeRow.test.tsx
+  - apps/labor-market-dashboard/src/__tests__/components/TreePanel.test.tsx
+  - apps/labor-market-dashboard/src/components/index.ts
+- **Commit**: 03a5378
+
