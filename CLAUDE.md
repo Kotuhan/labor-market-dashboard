@@ -33,10 +33,11 @@ User writes in Ukrainian, Claude responds in English.
 apps/
   labor-market-dashboard/    # Main React SPA (Vite + React + TS)
     src/
+      __tests__/             # Tests mirroring src/ structure
       components/            # Slider, PieChart, TreePanel, ModeToggle, SummaryBar, ResetButton
       data/                  # defaultTree.ts — Ukraine labor market defaults
       hooks/                 # useTreeState, useAutoBalance
-      types/                 # TreeNode, DashboardState interfaces
+      types/                 # TreeNode, GenderSplit, BalanceMode, DashboardState
       utils/                 # calculations.ts, format.ts
 packages/config/             # Shared ESLint, TS configs
 architecture/                # ADRs, contracts, diagrams, roadmap, runbooks
@@ -108,6 +109,22 @@ All apps extend shared configs from `packages/config/` (see [packages/config/CLA
 - Tailwind CSS v4: `@tailwindcss/vite` plugin, CSS-first config (`@import "tailwindcss"`)
 - `@types/node` required as devDependency for `vite.config.ts`
 - `vite-env.d.ts` in `src/` for Vite client type declarations
+
+### Vitest Testing Pattern
+
+- Separate `vitest.config.ts` per app (not merged into `vite.config.ts`)
+- `@` path alias must be replicated in `vitest.config.ts` (does not inherit from Vite config)
+- `vitest.config.ts` must be added to `tsconfig.node.json` `include` array
+- Test script: `vitest run` (not `vitest` which runs in watch mode)
+- Tests in `src/__tests__/` mirroring source structure (see app CLAUDE.md for details)
+- Use `.ts` extension (not `.tsx`) for files without JSX -- avoids `react-refresh/only-export-components` warning
+
+### Type Definition Conventions
+
+- Named exports only, no default exports (exception: legacy `App.tsx`)
+- Barrel re-exports use `export type { ... }` syntax for type-only modules
+- JSDoc on all interfaces and type aliases, with field-level docs for non-obvious fields
+- String literal union types preferred over enums for small fixed sets
 
 ## Agent Rules
 

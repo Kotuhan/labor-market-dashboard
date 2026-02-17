@@ -28,9 +28,11 @@ Root: Total Employed (13,500k)
   │   │   └─ Level 3: Subcategories (75+ breakdowns)
 ```
 
-Key interfaces:
-- `TreeNode` — recursive node with percentage, absoluteValue, genderSplit, children, isLocked
-- `DashboardState` — totalPopulation, balanceMode ('auto' | 'free'), tree root
+Key interfaces (implemented in `src/types/tree.ts`):
+- `GenderSplit` — `{ male: number; female: number }` (both required, sum = 100 at runtime)
+- `BalanceMode` — `'auto' | 'free'` union type for slider behavior
+- `TreeNode` — recursive node with id, label, percentage, absoluteValue, genderSplit, children, defaultPercentage, isLocked, optional kvedCode
+- `DashboardState` — totalPopulation, balanceMode (BalanceMode), tree (single TreeNode root)
 
 ### Auto-Balance Algorithm
 
@@ -66,7 +68,7 @@ Centralized TypeScript, ESLint, and Prettier configs shared across the monorepo.
 | Linting | ESLint | 8.x (legacy format) | Monorepo consistency, `.eslintrc.cjs` | ADR-0003 |
 | Charts | Recharts | TBD | Pie chart support, animations | -- |
 | State | Zustand / useReducer | TBD | Lightweight tree state | -- |
-| Tests | Vitest + RTL | TBD | Unit and integration tests | -- |
+| Tests | Vitest + RTL | 3.x | Unit and integration tests | -- |
 | CI/CD | GitHub Actions | TBD | Auto-deploy on push to main | -- |
 | Hosting | GitHub Pages | -- | Free, static SPA | -- |
 
@@ -82,6 +84,10 @@ Centralized TypeScript, ESLint, and Prettier configs shared across the monorepo.
 | Vite Config | `apps/labor-market-dashboard/vite.config.ts` | React + Tailwind plugins, `@` alias | task-001 |
 | TS Config (React) | `packages/config/typescript/react.json` | Shared React/Vite TypeScript config | task-001 |
 | ESLint Config (React) | `packages/config/eslint/react.js` | Shared React ESLint config | task-001 |
+| Types (tree.ts) | `apps/labor-market-dashboard/src/types/tree.ts` | TreeNode, GenderSplit, BalanceMode, DashboardState interfaces | task-002 |
+| Types (barrel) | `apps/labor-market-dashboard/src/types/index.ts` | Type-only barrel re-export | task-002 |
+| Vitest Config | `apps/labor-market-dashboard/vitest.config.ts` | Test runner config with `@` path alias | task-002 |
+| Type Tests | `apps/labor-market-dashboard/src/__tests__/types/tree.test.ts` | Type-safety tests (11 cases) | task-002 |
 
 ### Planned (Not Yet Implemented)
 
@@ -96,7 +102,6 @@ Centralized TypeScript, ESLint, and Prettier configs shared across the monorepo.
 | useTreeState | `src/hooks/useTreeState.ts` | Tree state management (reducer/Zustand) |
 | useAutoBalance | `src/hooks/useAutoBalance.ts` | Auto-balance redistribution algorithm |
 | defaultTree | `src/data/defaultTree.ts` | Ukraine labor market default data |
-| types | `src/types/tree.ts` | TreeNode, DashboardState interfaces |
 | calculations | `src/utils/calculations.ts` | Absolute value recalculation |
 | format | `src/utils/format.ts` | Number formatting (UA locale, thousands separator) |
 
@@ -127,6 +132,43 @@ Centralized TypeScript, ESLint, and Prettier configs shared across the monorepo.
 | [ADR-0001](decisions/adr-0001-adopt-react-vite-typescript-frontend-stack.md) | Adopt React 19 + Vite 6 + TypeScript 5.7 as frontend stack | accepted | task-001 |
 | [ADR-0002](decisions/adr-0002-use-tailwind-css-v4-css-first-config.md) | Use Tailwind CSS v4 with CSS-first configuration | accepted | task-001 |
 | [ADR-0003](decisions/adr-0003-maintain-eslint-v8-legacy-config-format.md) | Maintain ESLint v8 legacy config format across monorepo | accepted | task-001 |
+
+## Development Conventions
+
+### Vitest Configuration Pattern
+
+Vitest is the test runner for all apps in the monorepo. Each app that has tests must have its own `vitest.config.ts` (separate from `vite.config.ts`) with these conventions:
+
+| Setting | Value | Rationale |
+|---------|-------|-----------|
+| Config import | `vitest/config` (not `vite`) | Provides proper `test` field typing |
+| `@` path alias | Replicated from `vite.config.ts` | Tests can use the same `@/` imports as source code |
+| `globals` | `false` | Explicit imports (`describe`, `it`, `expect` from `vitest`) avoid global namespace pollution |
+| `environment` | `'node'` for non-DOM tests; `'jsdom'` for React component tests | Minimize test overhead |
+| Plugins | None for type-only tests; add `react()` etc. only when DOM is needed | Avoid unnecessary build overhead |
+
+The `vitest.config.ts` file must be added to `tsconfig.node.json`'s `include` array for ESLint type-checking to work.
+
+The `test` script in each app's `package.json` should be `vitest run` (single run, not watch mode).
+
+### Test Directory Convention
+
+Tests live in `src/__tests__/` mirroring the source directory structure:
+
+```
+src/
+  types/
+    tree.ts
+    index.ts
+  __tests__/
+    types/
+      tree.test.ts
+```
+
+- Test files use the `.test.ts` extension (`.test.tsx` for component tests with JSX)
+- Directory structure under `__tests__/` mirrors the `src/` structure (e.g., `src/__tests__/types/` for `src/types/`)
+- Type-only test imports use `import type { ... }` syntax
+- Each test file imports from the corresponding source using the `@/` path alias
 
 ## Known Limitations
 

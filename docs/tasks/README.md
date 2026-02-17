@@ -27,6 +27,7 @@ docs/tasks/
 | ID | Name | Status | Dependencies | Folder |
 |----|------|--------|--------------|--------|
 | task-001 | Setup React Labor Market Dashboard App | done | none | task-001-setup-react-dashboard |
+| task-002 | Define TypeScript Data Model and Tree Structure | done | task-001 | task-002-define-data-model |
 
 ---
 
@@ -57,6 +58,7 @@ graph TD
 | ID | Date | Summary |
 |----|------|---------|
 | task-001 | 2026-02-17 | Scaffolded React + Vite + TypeScript + Tailwind CSS v4 app in the monorepo, with shared configs and full Turborepo integration |
+| task-002 | 2026-02-17 | Defined core TypeScript data model (TreeNode, GenderSplit, BalanceMode, DashboardState) with recursive tree structure, Vitest test runner, and 11 type-safety tests |
 
 ---
 
