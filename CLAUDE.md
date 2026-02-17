@@ -34,7 +34,7 @@ apps/
   labor-market-dashboard/    # Main React SPA (Vite + React + TS)
     src/
       __tests__/             # Tests mirroring src/ structure
-      components/            # Slider, PieChartPanel, ChartTooltip, ChartLegend, TreePanel, ModeToggle, SummaryBar, ResetButton
+      components/            # Slider, PieChartPanel, ChartTooltip, ChartLegend, TreePanel, TreeRow, ModeToggle, SummaryBar, ResetButton
       data/                  # defaultTree.ts, dataHelpers.ts, chartColors.ts — Ukraine labor market defaults + chart colors
       hooks/                 # useTreeState (useReducer-based state management)
       types/                 # TreeNode, GenderSplit, BalanceMode, DashboardState, TreeAction
@@ -140,6 +140,7 @@ All apps extend shared configs from `packages/config/` (see [packages/config/CLA
 - Pure utility functions in `utils/` for testability; reducer composes them; hook is a thin wrapper
 - Immutable tree updates via recursive spread (no Immer, no structural sharing)
 - `largestRemainder()` used for all percentage rounding (1 decimal place, exact 100.0 sums)
+- **UI-only state stays local**: Expand/collapse, focus tracking, etc. use `useState` in the component -- NOT added to the reducer. Only data with business logic implications goes in the reducer.
 - See [apps/labor-market-dashboard/CLAUDE.md](apps/labor-market-dashboard/CLAUDE.md) for full details
 
 ### Component Pattern
@@ -147,6 +148,7 @@ All apps extend shared configs from `packages/config/` (see [packages/config/CLA
 - **Controlled components**: No internal value state -- receive percentage/values as props, dispatch actions upward
 - **Minimal local state**: Only for input fields needing partial-typing support (string state synced from props via `useEffect`)
 - **Read-only visualization**: Chart components receive `TreeNode[]` as `nodes` prop, render only, no dispatch. Use `React.memo` for performance.
+- **Container + recursive child**: TreePanel (container, manages UI-only expand/collapse state via `useState<Set<string>>`) + TreeRow (recursive, `React.memo`). See app CLAUDE.md for full details.
 - **Barrel exports**: `components/index.ts` exports component + `export type` for props interface
 - **Touch targets**: All interactive elements >= 44x44px (WCAG 2.5.5)
 - See [apps/labor-market-dashboard/CLAUDE.md](apps/labor-market-dashboard/CLAUDE.md) for full details
@@ -166,7 +168,7 @@ All apps extend shared configs from `packages/config/` (see [packages/config/CLA
 
 ### Type Definition Conventions
 
-- Named exports only, no default exports (exception: legacy `App.tsx`)
+- Named exports only, no default exports
 - Barrel re-exports use `export type { ... }` syntax for type-only modules
 - JSDoc on all interfaces and type aliases, with field-level docs for non-obvious fields
 - String literal union types preferred over enums for small fixed sets

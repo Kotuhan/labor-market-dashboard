@@ -1,16 +1,18 @@
-function App() {
+import { TreePanel } from '@/components';
+import { useTreeState } from '@/hooks';
+
+export function App() {
+  const { state, dispatch } = useTreeState();
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50">
-      <div className="rounded-lg bg-white p-8 shadow-sm">
-        <h1 className="text-2xl font-bold text-blue-500">
-          Labor Market Dashboard
-        </h1>
-        <p className="mt-2 text-slate-600">
-          Interactive labor market calculator for Ukraine
-        </p>
+    <div className="min-h-screen bg-slate-50 px-4 py-8">
+      <div className="mx-auto max-w-3xl rounded-lg bg-white p-6 shadow-sm">
+        <TreePanel
+          tree={state.tree}
+          balanceMode={state.balanceMode}
+          dispatch={dispatch}
+        />
       </div>
     </div>
   );
 }
-
-export default App;

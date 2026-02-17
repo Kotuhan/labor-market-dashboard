@@ -9,3 +9,9 @@ export type { PieChartPanelProps } from './PieChartPanel';
 
 export { Slider } from './Slider';
 export type { SliderProps } from './Slider';
+
+export { TreePanel } from './TreePanel';
+export type { TreePanelProps } from './TreePanel';
+
+export { TreeRow } from './TreeRow';
+export type { TreeRowProps } from './TreeRow';

@@ -30,8 +30,8 @@ apps/labor-market-dashboard/
   .eslintrc.cjs           # Extends @template/config/eslint/react
   package.json            # type: "module", @template/config as workspace:*
   src/
-    main.tsx              # React entry point (StrictMode)
-    App.tsx               # Root component
+    main.tsx              # React entry point (StrictMode, named import of App)
+    App.tsx               # Root component (named export, wires useTreeState to TreePanel)
     App.css               # App-specific styles (placeholder)
     index.css             # Tailwind entry + custom range input CSS
     vite-env.d.ts         # Vite client type declarations
@@ -40,6 +40,8 @@ apps/labor-market-dashboard/
       PieChartPanel.tsx   # Pie chart visualization (React.memo, Recharts, read-only)
       ChartTooltip.tsx    # Custom tooltip for pie chart slices (Ukrainian formatting)
       ChartLegend.tsx     # Scrollable legend with color swatches (semantic ul/li)
+      TreePanel.tsx       # Tree container (expand/collapse state, root header, gender sections)
+      TreeRow.tsx         # Recursive tree row (React.memo, chevron, indentation, embedded Slider)
       index.ts            # Barrel: components + export type for props interfaces
     types/
       tree.ts             # Core data model: TreeNode, GenderSplit, BalanceMode, DashboardState
@@ -77,6 +79,8 @@ apps/labor-market-dashboard/
         PieChartPanel.test.tsx # 11 tests: accessibility, legend, free mode, size variants
         ChartTooltip.test.tsx  # 5 tests: rendering, null states, ghost slice handling
         ChartLegend.test.tsx   # 5 tests: list items, labels, semantic markup, maxHeight
+        TreeRow.test.tsx       # 21 tests: rendering, chevron, expand/collapse, indent, Slider integration, a11y
+        TreePanel.test.tsx     # 14 tests: root display, gender sections, industry nodes, expand/collapse, a11y
       hooks/
         useTreeState.test.ts # 19 tests: all 5 actions, cascading recalc, performance
 ```
@@ -224,9 +228,10 @@ export type { PercentageUpdate } from './calculations';
 
 ### Component Categories
 
-Components fall into two categories:
+Components fall into three categories:
 1. **Interactive** (Slider): Controlled, dispatch actions upward, minimal local state
 2. **Read-only visualization** (PieChartPanel, ChartTooltip, ChartLegend): Receive data as props, no internal state, no dispatch
+3. **Container + recursive** (TreePanel + TreeRow): Container manages UI-only state, recursive child handles per-node rendering with `React.memo`
 
 ### Slider Component Pattern
 
@@ -250,6 +255,21 @@ The PieChartPanel + ChartTooltip + ChartLegend form the **read-only visualizatio
 - **Ghost slice (free mode)**: When percentages sum < 100%, a gray "Нерозподілено" slice is appended. When > 100%, an overflow badge shows the total. Ghost slices excluded from legend and sr-only table.
 - **Size variants**: `size` prop (`'standard'` = 300px, `'mini'` = 200px) controls chart height and radius.
 - **Accessibility**: `<figure role="img" aria-label={...}>` wrapper + `sr-only` data `<table>` fallback for screen readers. Color swatches use `aria-hidden="true"`.
+
+### Tree Panel Pattern (Container + Recursive)
+
+The TreePanel + TreeRow form the **container + recursive child** pattern for hierarchical navigation:
+
+- **TreePanel (container)**: Manages expand/collapse state via `useState<Set<string>>`. This is UI-only state -- NOT in the reducer (per ADR-0004). Renders root header (`<h1>`), gender sections as non-collapsible `<section aria-label>` headers (`<h2>`), and delegates industry rows to TreeRow.
+- **TreeRow (recursive, `React.memo`)**: Renders a single node with chevron toggle + embedded Slider. Recursively renders children when expanded. Wrapped in `memo(function TreeRow(...))` for performance during slider interactions.
+- **`useCallback` on toggle handler**: Required because TreeRow is memoized. The `handleToggleExpand` callback uses `useCallback` with `setExpandedIds(prev => ...)` functional form to avoid stale closures. This is a justified exception to the "no premature useCallback" general guidance.
+- **Expand/collapse initialization**: `collectExpandableIds()` walks the tree once on mount (lazy `useState` initializer) to start all expandable nodes as expanded (per PO Q2 resolution).
+- **Gender nodes are always expanded**: Per PO Q1 resolution, gender nodes are section headers -- they are never in `expandedIds` and have no collapse toggle. Only industry-level nodes with children (e.g., IT/KVED J) are tracked in `expandedIds`.
+- **Expand state persists across RESET**: Data resets but UI expand/collapse state does not -- this is intentional. Expand state is independent of business data.
+- **Siblings prop**: TreeRow receives `siblings: readonly TreeNode[]` from its parent to compute `canToggleLock` for the embedded Slider. This avoids a DFS tree traversal per row.
+- **Indentation**: `paddingLeft: ${depth * 24}px` via inline style (dynamic, cannot be static Tailwind classes). Industry depth starts at 0 (industries have no indentation; subcategories get 24px).
+- **Spacer for alignment**: Leaf nodes without a chevron render a `<div className="h-11 w-11 shrink-0" />` spacer to maintain horizontal alignment with sibling rows that have chevrons.
+- **Accessibility**: Chevron buttons use `aria-expanded` + `aria-label` (`Expand {label}` / `Collapse {label}`). Gender sections use `<section aria-label>` (maps to `role="region"`). Root uses `<h1>`, gender uses `<h2>` for heading hierarchy.
 
 ### Recharts Integration
 
@@ -330,6 +350,8 @@ src/components/Slider.tsx       -->  src/__tests__/components/Slider.test.tsx
 src/components/PieChartPanel.tsx -->  src/__tests__/components/PieChartPanel.test.tsx
 src/components/ChartTooltip.tsx  -->  src/__tests__/components/ChartTooltip.test.tsx
 src/components/ChartLegend.tsx   -->  src/__tests__/components/ChartLegend.test.tsx
+src/components/TreePanel.tsx    -->  src/__tests__/components/TreePanel.test.tsx
+src/components/TreeRow.tsx      -->  src/__tests__/components/TreeRow.test.tsx
 src/hooks/useTreeState.ts      -->  src/__tests__/hooks/useTreeState.test.ts
 ```
 
@@ -365,6 +387,9 @@ Component tests use `@testing-library/react` v16 + `@testing-library/user-event`
 - **`afterEach(cleanup)`**: Explicit cleanup required when `globals: false`.
 - **`makeProps()` factory pattern**: Create default props with `Partial<Props>` overrides for test readability.
 - **`vi.fn()` for dispatch mock**: All component tests mock dispatch and assert on exact action payloads. No real reducer used -- tests verify component behavior in isolation.
+- **`within()` for scoped queries**: When multiple elements have the same text (e.g., same percentage in different sections), use `within(parentElement)` to scope queries. Example: `within(maleHeader).getByText('60.0%')` to disambiguate gender section percentages from slider values.
+- **Minimal test trees**: Container component tests (TreePanel) use a minimal test tree fixture (~8 nodes), NOT the full 55-node `defaultTree` -- keeps tests fast and readable.
+- **`<section aria-label>` maps to `role="region"`**: In tests, query gender sections with `screen.getByRole('region', { name: 'Чоловіки' })` -- NOT `getByRole('section')` (HTML `<section>` elements with `aria-label` expose the `region` role in the accessibility tree).
 - **Test setup file** at `src/__tests__/setup.ts`: Single-line import of `@testing-library/jest-dom/vitest` (note: the `/vitest` entry point, not default) for global matcher registration.
 
 ### Vitest v3 Mock Syntax
@@ -414,7 +439,7 @@ Use `import type` for type-only imports in test files. The `expectTypeOf` patter
 - Use `Intl.NumberFormat` for space-separated thousands formatting -- produces non-breaking spaces (`\u00A0`) inconsistently across environments; use manual `formatWithSpaces()` in `format.ts` instead
 - Use vitest v2 `vi.fn<[Args], Return>()` syntax -- vitest v3 requires `vi.fn<(args: Args) => Return>()` function signature style
 - Store local percentage state in components -- percentage source of truth is always the tree state (useReducer). Components receive percentage as props and dispatch `SET_PERCENTAGE` actions
-- Use `useCallback` on component event handlers prematurely -- no expensive child components benefit from referential stability in the current component tree
+- Use `useCallback` on component event handlers prematurely -- EXCEPT when the callback is passed to a `React.memo`-wrapped child (e.g., `handleToggleExpand` in TreePanel passed to memoized TreeRow). In that case, `useCallback` is required for memo effectiveness.
 - Name a prop `children` when passing `TreeNode[]` data -- `children` is reserved by React. Use `nodes` instead (see PieChartPanel for precedent)
 - Use Recharts 3.x -- it adds `@reduxjs/toolkit`, `immer`, `react-redux` as transitive dependencies, conflicting with the project's lightweight `useReducer` approach. Stick with Recharts 2.x
 - Skip the `ResizeObserver` mock in Recharts component tests -- `ResponsiveContainer` will not render without it in jsdom

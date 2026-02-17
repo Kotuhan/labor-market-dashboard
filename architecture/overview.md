@@ -96,8 +96,8 @@ Centralized TypeScript, ESLint, and Prettier configs shared across the monorepo.
 
 | Module | Location | Responsibility | Since |
 |--------|----------|----------------|-------|
-| App Shell | `apps/labor-market-dashboard/src/App.tsx` | Root component, placeholder page | task-001 |
-| Entry Point | `apps/labor-market-dashboard/src/main.tsx` | React 19 StrictMode bootstrap | task-001 |
+| App Shell | `apps/labor-market-dashboard/src/App.tsx` | Root component, wires useTreeState to TreePanel (named export) | task-001, task-007 |
+| Entry Point | `apps/labor-market-dashboard/src/main.tsx` | React 19 StrictMode bootstrap (named import of App) | task-001, task-007 |
 | Tailwind Entry | `apps/labor-market-dashboard/src/index.css` | `@import "tailwindcss"` (v4 CSS-first) | task-001 |
 | Vite Config | `apps/labor-market-dashboard/vite.config.ts` | React + Tailwind plugins, `@` alias | task-001 |
 | TS Config (React) | `packages/config/typescript/react.json` | Shared React/Vite TypeScript config | task-001 |
@@ -136,12 +136,15 @@ Centralized TypeScript, ESLint, and Prettier configs shared across the monorepo.
 | ChartTooltip Tests | `apps/labor-market-dashboard/src/__tests__/components/ChartTooltip.test.tsx` | 5 tests: rendering, null states, ghost slice handling | task-006 |
 | ChartLegend Tests | `apps/labor-market-dashboard/src/__tests__/components/ChartLegend.test.tsx` | 5 tests: list items, labels, semantic markup, maxHeight | task-006 |
 | PieChartPanel Tests | `apps/labor-market-dashboard/src/__tests__/components/PieChartPanel.test.tsx` | 11 tests: accessibility, legend, free mode, size variants | task-006 |
+| TreePanel | `apps/labor-market-dashboard/src/components/TreePanel.tsx` | Tree container: expand/collapse state (local useState), root header, gender sections, delegates to TreeRow | task-007 |
+| TreeRow | `apps/labor-market-dashboard/src/components/TreeRow.tsx` | Recursive tree row: React.memo, chevron toggle, indentation, embedded Slider, canToggleLock | task-007 |
+| TreeRow Tests | `apps/labor-market-dashboard/src/__tests__/components/TreeRow.test.tsx` | 21 tests: rendering, chevron, expand/collapse, indentation, Slider integration, a11y, canLock | task-007 |
+| TreePanel Tests | `apps/labor-market-dashboard/src/__tests__/components/TreePanel.test.tsx` | 14 tests: root display, gender sections, industry nodes, expand/collapse integration, a11y | task-007 |
 
 ### Planned (Not Yet Implemented)
 
 | Module | Location | Responsibility |
 |--------|----------|----------------|
-| TreePanel | `src/components/TreePanel/` | Expandable/collapsible category hierarchy |
 | ModeToggle | `src/components/ModeToggle/` | Auto-balance / Free mode switch |
 | SummaryBar | `src/components/SummaryBar/` | Total population input + statistics |
 | ResetButton | `src/components/ResetButton/` | Reset to defaults + confirmation modal |
@@ -258,6 +261,18 @@ Visualization components (PieChartPanel, ChartTooltip, ChartLegend) follow a dis
 - **Data transformation outside component**: Utility functions (e.g., `toChartData()`) in `utils/` convert tree data to chart-library-specific formats. Keeps mapping logic testable without React.
 - **Reuse formatting utilities**: Custom tooltip/legend components reuse `formatAbsoluteValue`/`formatPercentage` from `utils/format.ts` for Ukrainian number formatting.
 - **Accessibility**: `<figure role="img" aria-label={...}>` wrapper + `sr-only` data `<table>` for screen readers. Color swatches use `aria-hidden="true"`.
+
+### Container + Recursive Component Pattern
+
+TreePanel + TreeRow establish the **container + recursive child** pattern for hierarchical tree navigation:
+
+- **TreePanel (container)**: Manages expand/collapse state via `useState<Set<string>>` -- UI-only state, NOT in the reducer (per ADR-0004). Renders root header (`<h1>`), gender sections as non-collapsible `<section aria-label>` headers (`<h2>`), and delegates industry rows to TreeRow.
+- **TreeRow (recursive, `React.memo`)**: Renders a single node with chevron toggle + embedded Slider. Recursively renders children when expanded. `memo(function TreeRow(...))` follows the PieChartPanel named function pattern.
+- **`useCallback` on toggle handler**: Required because TreeRow is memoized -- `handleToggleExpand` uses `setExpandedIds(prev => ...)` functional form to avoid stale closures.
+- **Expand initialization**: `collectExpandableIds()` walks the tree once on mount (lazy `useState` initializer). All expandable nodes start expanded.
+- **Gender nodes always expanded**: Gender nodes are section headers, never tracked in `expandedIds`, no collapse toggle.
+- **Indentation**: `paddingLeft: ${depth * 24}px` via inline style. Leaf nodes render a spacer `<div>` matching chevron dimensions for alignment.
+- **Accessibility**: `aria-expanded` on chevron buttons, `aria-label` with "Expand/Collapse {label}", `<section aria-label>` for gender regions, `<h1>`/`<h2>` heading hierarchy.
 
 ### Recharts Integration Convention
 
