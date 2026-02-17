@@ -53,3 +53,27 @@ This file tracks all agent runs and workflow transitions for this subtask.
 - **Summary**: Subtask adds two small leaf components following existing patterns. No new patterns, conventions, or architectural decisions to capture. Light subtask — context update not needed.
 - **Next stage**: git-commit
 
+---
+
+## 2026-02-17 20:35 - Git Commit
+
+- **Agent**: director (git-commit)
+- **Result**: completed
+- **Commit**: 03e975d
+- **Commit message**: Add ModeToggle and ResetButton components with task-008 setup (task-008.1)
+- **Next stage**: done
+
+---
+
+## 2026-02-17 20:35 - Subtask Complete
+
+- **Final Status**: DONE
+- **Files Created**:
+  - apps/labor-market-dashboard/src/components/ModeToggle.tsx
+  - apps/labor-market-dashboard/src/components/ResetButton.tsx
+  - apps/labor-market-dashboard/src/__tests__/components/ModeToggle.test.tsx
+  - apps/labor-market-dashboard/src/__tests__/components/ResetButton.test.tsx
+- **Files Modified**:
+  - apps/labor-market-dashboard/src/components/index.ts
+- **Commit**: 03e975d
+

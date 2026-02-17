@@ -1,7 +1,8 @@
 import { memo } from 'react';
 
 import type { BalanceMode, TreeAction, TreeNode } from '@/types';
-import { canToggleLock } from '@/utils/calculations';
+import { canToggleLock, getSiblingDeviation } from '@/utils/calculations';
+import { formatPercentage } from '@/utils/format';
 
 import { Slider } from './Slider';
 
@@ -28,6 +29,8 @@ export interface TreeRowProps {
  *
  * Renders a single node with optional expand/collapse chevron, indentation,
  * and an embedded Slider. When expanded, recursively renders child nodes.
+ * In free mode, shows deviation warning for expanded nodes whose children
+ * don't sum to 100%.
  *
  * Wrapped in React.memo to prevent re-renders during sibling slider interactions.
  */
@@ -43,6 +46,11 @@ export const TreeRow = memo(function TreeRow({
   const hasChildren = node.children.length > 0;
   const isExpanded = expandedIds.has(node.id);
   const canLock = canToggleLock(node.id, siblings);
+
+  // Compute subcategory deviation for expanded nodes in free mode
+  const showDeviation =
+    isExpanded && hasChildren && balanceMode === 'free';
+  const deviation = showDeviation ? getSiblingDeviation(node) : 0;
 
   return (
     <div>
@@ -125,6 +133,17 @@ export const TreeRow = memo(function TreeRow({
             onToggleExpand={onToggleExpand}
           />
         ))}
+
+      {/* Subcategory deviation warning (free mode, expanded nodes with children) */}
+      {showDeviation && deviation !== 0 && (
+        <p
+          className="text-sm font-medium text-amber-600"
+          style={{ paddingLeft: `${(depth + 1) * 24}px` }}
+          role="status"
+        >
+          Сума: {formatPercentage(100 + deviation)} ({deviation > 0 ? '+' : ''}{formatPercentage(deviation)})
+        </p>
+      )}
     </div>
   );
 });

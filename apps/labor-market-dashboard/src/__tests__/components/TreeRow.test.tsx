@@ -369,3 +369,103 @@ describe('TreeRow locked state', () => {
     ).toBeInTheDocument();
   });
 });
+
+// -------------------------------------------------------
+// Deviation warning tests (free mode, subcategory level)
+// -------------------------------------------------------
+describe('TreeRow deviation warnings', () => {
+  it('shows deviation warning when expanded in free mode with deviation', () => {
+    const node = makeNodeWithChildren();
+    // Subcategories sum to 74.3% (59.6 + 14.7 = 74.3, deviation = -25.7)
+    render(
+      <TreeRow
+        {...makeProps({
+          node,
+          siblings: [node],
+          balanceMode: 'free',
+          expandedIds: new Set(['test-j']),
+        })}
+      />,
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Сума: 74.3% (-25.7%)',
+    );
+  });
+
+  it('does not show deviation warning in auto mode', () => {
+    const node = makeNodeWithChildren();
+    render(
+      <TreeRow
+        {...makeProps({
+          node,
+          siblings: [node],
+          balanceMode: 'auto',
+          expandedIds: new Set(['test-j']),
+        })}
+      />,
+    );
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('does not show deviation warning when collapsed', () => {
+    const node = makeNodeWithChildren();
+    render(
+      <TreeRow
+        {...makeProps({
+          node,
+          siblings: [node],
+          balanceMode: 'free',
+          expandedIds: new Set(), // collapsed
+        })}
+      />,
+    );
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('does not show deviation warning on leaf nodes', () => {
+    render(
+      <TreeRow
+        {...makeProps({
+          balanceMode: 'free',
+        })}
+      />,
+    );
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('does not show deviation warning when subcategories sum to exactly 100%', () => {
+    const node = makeNodeWithChildren();
+    // Override children to sum to exactly 100%
+    node.children = [
+      makeNode({
+        id: 'test-j-software',
+        label: 'Розробка ПЗ',
+        percentage: 60,
+        absoluteValue: 131_348,
+      }),
+      makeNode({
+        id: 'test-j-qa',
+        label: 'QA / Тестування',
+        percentage: 40,
+        absoluteValue: 32_396,
+      }),
+    ];
+
+    render(
+      <TreeRow
+        {...makeProps({
+          node,
+          siblings: [node],
+          balanceMode: 'free',
+          expandedIds: new Set(['test-j']),
+        })}
+      />,
+    );
+
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+});
