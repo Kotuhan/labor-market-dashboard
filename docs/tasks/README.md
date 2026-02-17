@@ -26,7 +26,7 @@ docs/tasks/
 
 | ID | Name | Status | Dependencies | Folder |
 |----|------|--------|--------------|--------|
-| <!-- Add tasks here --> |
+| task-001 | Setup React Labor Market Dashboard App | done | none | task-001-setup-react-dashboard |
 
 ---
 
@@ -56,7 +56,7 @@ graph TD
 
 | ID | Date | Summary |
 |----|------|---------|
-| <!-- Completed tasks logged here --> |
+| task-001 | 2026-02-17 | Scaffolded React + Vite + TypeScript + Tailwind CSS v4 app in the monorepo, with shared configs and full Turborepo integration |
 
 ---
 

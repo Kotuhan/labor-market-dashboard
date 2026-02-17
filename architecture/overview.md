@@ -6,12 +6,15 @@
 
 Single-page application for interactive labor market modeling.
 
+**Location**: `apps/labor-market-dashboard/`
+**Package**: `@template/labor-market-dashboard`
+
 | Component | Technology | Purpose |
 |-----------|------------|---------|
-| App Shell | React 18+ / Vite | Component framework, fast HMR |
+| App Shell | React 19 / Vite 6 | Component framework, fast HMR (per ADR-0001) |
 | State Management | Zustand / useReducer | Tree state, auto-balance logic |
 | Visualization | Recharts | Animated pie charts with tooltips |
-| Styling | Tailwind CSS | Utility-first responsive design |
+| Styling | Tailwind CSS v4 | CSS-first config, `@tailwindcss/vite` plugin (per ADR-0002) |
 | Hosting | GitHub Pages | Static SPA, no backend |
 
 ### Data Architecture
@@ -39,21 +42,48 @@ When a slider changes in auto-balance mode:
 
 Free mode: independent sliders, sum may deviate from 100% (warning shown).
 
+### Shared Config Package
+
+**Location**: `packages/config/`
+**Package**: `@template/config`
+
+Centralized TypeScript, ESLint, and Prettier configs shared across the monorepo.
+
+| Config Type | Variants | Extension Pattern |
+|-------------|----------|-------------------|
+| TypeScript | `base`, `next`, `nest`, `react` | `"extends": "@template/config/typescript/{variant}"` |
+| ESLint | `base`, `next`, `nest`, `react` | `require.resolve("@template/config/eslint/{variant}")` |
+| Prettier | shared | `"@template/config/prettier"` |
+
 ## Tech Stack
 
-| Category | Technology | Rationale |
-|----------|------------|-----------|
-| Framework | React 18+ | Component model, hooks, ecosystem |
-| Language | TypeScript (strict) | Type safety for tree operations |
-| Build | Vite | Fast HMR, optimal bundle |
-| Styles | Tailwind CSS | Rapid prototyping, responsive |
-| Charts | Recharts | Pie chart support, animations |
-| State | Zustand / useReducer | Lightweight tree state |
-| Tests | Vitest + RTL | Unit and integration tests |
-| CI/CD | GitHub Actions | Auto-deploy on push to main |
-| Hosting | GitHub Pages | Free, static SPA |
+| Category | Technology | Version | Rationale | ADR |
+|----------|------------|---------|-----------|-----|
+| Framework | React | 19.x | Component model, hooks, ecosystem | ADR-0001 |
+| Language | TypeScript | 5.7+ (strict) | Type safety for tree operations | ADR-0001 |
+| Build | Vite | 6.x | Fast HMR, optimal bundle, ESM-native | ADR-0001 |
+| Styles | Tailwind CSS | 4.x | CSS-first config, no JS config file | ADR-0002 |
+| Linting | ESLint | 8.x (legacy format) | Monorepo consistency, `.eslintrc.cjs` | ADR-0003 |
+| Charts | Recharts | TBD | Pie chart support, animations | -- |
+| State | Zustand / useReducer | TBD | Lightweight tree state | -- |
+| Tests | Vitest + RTL | TBD | Unit and integration tests | -- |
+| CI/CD | GitHub Actions | TBD | Auto-deploy on push to main | -- |
+| Hosting | GitHub Pages | -- | Free, static SPA | -- |
 
 ## Module Inventory
+
+### Implemented
+
+| Module | Location | Responsibility | Since |
+|--------|----------|----------------|-------|
+| App Shell | `apps/labor-market-dashboard/src/App.tsx` | Root component, placeholder page | task-001 |
+| Entry Point | `apps/labor-market-dashboard/src/main.tsx` | React 19 StrictMode bootstrap | task-001 |
+| Tailwind Entry | `apps/labor-market-dashboard/src/index.css` | `@import "tailwindcss"` (v4 CSS-first) | task-001 |
+| Vite Config | `apps/labor-market-dashboard/vite.config.ts` | React + Tailwind plugins, `@` alias | task-001 |
+| TS Config (React) | `packages/config/typescript/react.json` | Shared React/Vite TypeScript config | task-001 |
+| ESLint Config (React) | `packages/config/eslint/react.js` | Shared React ESLint config | task-001 |
+
+### Planned (Not Yet Implemented)
 
 | Module | Location | Responsibility |
 |--------|----------|----------------|
@@ -89,6 +119,14 @@ Free mode: independent sliders, sum may deviate from 100% (warning shown).
 | NFR-06 | Browser support | Chrome, Firefox, Safari, Edge |
 | NFR-07 | Bundle size | < 500KB gzipped |
 | NFR-08 | Animation framerate | 60fps |
+
+## Architectural Decisions
+
+| ADR | Title | Status | Triggered By |
+|-----|-------|--------|--------------|
+| [ADR-0001](decisions/adr-0001-adopt-react-vite-typescript-frontend-stack.md) | Adopt React 19 + Vite 6 + TypeScript 5.7 as frontend stack | accepted | task-001 |
+| [ADR-0002](decisions/adr-0002-use-tailwind-css-v4-css-first-config.md) | Use Tailwind CSS v4 with CSS-first configuration | accepted | task-001 |
+| [ADR-0003](decisions/adr-0003-maintain-eslint-v8-legacy-config-format.md) | Maintain ESLint v8 legacy config format across monorepo | accepted | task-001 |
 
 ## Known Limitations
 

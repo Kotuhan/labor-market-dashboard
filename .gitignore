@@ -17,6 +17,9 @@ apps/web/out/
 # NestJS
 apps/api/dist/
 
+# Labor Market Dashboard
+apps/labor-market-dashboard/dist/
+
 # Environment files (root)
 .env
 .env.local

@@ -18,12 +18,13 @@ User writes in Ukrainian, Claude responds in English.
 ## Tech Stack
 
 - **Monorepo**: Turborepo + pnpm workspaces
-- **App**: React 18+ with TypeScript (strict)
-- **Build**: Vite
-- **Styling**: Tailwind CSS
+- **App**: React 19 with TypeScript 5.7 (strict)
+- **Build**: Vite 6
+- **Styling**: Tailwind CSS v4 (CSS-first config, `@tailwindcss/vite` plugin -- no `tailwind.config.js`)
 - **Charts**: Recharts
 - **State**: Zustand / useReducer
 - **Tests**: Vitest + React Testing Library
+- **Linting**: ESLint v8 (legacy `.eslintrc.cjs` format across monorepo)
 - **Hosting**: GitHub Pages via GitHub Actions
 
 ## Project Structure
@@ -47,12 +48,14 @@ knowledgebase/               # Central research repository (managed by Researche
 
 ## Module Documentation
 
-| Directory        | CLAUDE.md                                            | Description                              |
-| ---------------- | ---------------------------------------------------- | ---------------------------------------- |
-| `knowledgebase/` | [knowledgebase/CLAUDE.md](knowledgebase/CLAUDE.md)   | Research repository, technical docs      |
-| `docs/`          | [docs/CLAUDE.md](docs/CLAUDE.md)                     | Tasks, workflow docs                     |
-| `architecture/`  | [architecture/CLAUDE.md](architecture/CLAUDE.md)     | ADRs, contracts, diagrams, roadmap       |
-| `.claude/`       | [.claude/CLAUDE.md](.claude/CLAUDE.md)               | Agent, command, skill definitions        |
+| Directory                          | CLAUDE.md                                                                                    | Description                              |
+| ---------------------------------- | -------------------------------------------------------------------------------------------- | ---------------------------------------- |
+| `apps/labor-market-dashboard/`     | [apps/labor-market-dashboard/CLAUDE.md](apps/labor-market-dashboard/CLAUDE.md)               | React SPA -- Vite, Tailwind v4, patterns |
+| `packages/config/`                 | [packages/config/CLAUDE.md](packages/config/CLAUDE.md)                                       | Shared TS/ESLint/Prettier configs        |
+| `knowledgebase/`                   | [knowledgebase/CLAUDE.md](knowledgebase/CLAUDE.md)                                           | Research repository, technical docs      |
+| `docs/`                            | [docs/CLAUDE.md](docs/CLAUDE.md)                                                             | Tasks, workflow docs                     |
+| `architecture/`                    | [architecture/CLAUDE.md](architecture/CLAUDE.md)                                             | ADRs, contracts, diagrams, roadmap       |
+| `.claude/`                         | [.claude/CLAUDE.md](.claude/CLAUDE.md)                                                       | Agent, command, skill definitions        |
 
 ## Commands
 
@@ -83,8 +86,28 @@ Before completing any implementation:
 
 ## Established Patterns
 
-<!-- Add project-specific patterns here as they emerge from development -->
-<!-- The context-updater agent will populate this section as you build -->
+### Shared Config Extension Pattern
+
+All apps extend shared configs from `packages/config/` (see [packages/config/CLAUDE.md](packages/config/CLAUDE.md)):
+- **TypeScript**: `tsconfig.json` extends `@template/config/typescript/{variant}` (variants: `base`, `next`, `nest`, `react`)
+- **ESLint**: `.eslintrc.cjs` extends via `require.resolve("@template/config/eslint/{variant}")`
+- New app types require creating both a TS and ESLint variant, plus updating `packages/config/package.json` exports
+
+### App Scaffolding Convention
+
+- Package name: `@template/{app-name}`
+- `"type": "module"` in `package.json` (required for Vite)
+- `@template/config` as `workspace:*` devDependency
+- Required scripts: `dev`, `build`, `lint`, `test`, `clean`
+- `clean` script: `rm -rf dist node_modules .turbo`
+
+### Vite + React App Pattern
+
+- Build: `tsc --noEmit && vite build` (NOT `tsc -b` -- see app CLAUDE.md for why)
+- Path alias: `@` -> `./src` in both `vite.config.ts` and `tsconfig.json`
+- Tailwind CSS v4: `@tailwindcss/vite` plugin, CSS-first config (`@import "tailwindcss"`)
+- `@types/node` required as devDependency for `vite.config.ts`
+- `vite-env.d.ts` in `src/` for Vite client type declarations
 
 ## Agent Rules
 
