@@ -10,9 +10,9 @@ User writes in Ukrainian, Claude responds in English.
 **Labor Market Dashboard Calculator** — interactive SPA for modeling "what-if" scenarios on Ukraine's labor market. Tree-structured data (gender → industry → subcategory) with real-time sliders and pie charts. No backend, hosted on GitHub Pages.
 
 - **Total employed (default)**: 13 500 000
-- **Gender split**: 52% male / 48% female
-- **Industries**: 15+ KVED sectors
-- **Subcategories**: 75+ detailed breakdowns
+- **Gender split**: 52.66% male / 47.34% female (derived from weighted industry data)
+- **Industries**: 16 KVED sectors per gender (32 total)
+- **Subcategories**: 10 IT subcategories per gender (20 total); other industries are leaf nodes
 - **Slider modes**: auto-balance (100% constraint) and free (independent)
 
 ## Tech Stack
@@ -35,7 +35,7 @@ apps/
     src/
       __tests__/             # Tests mirroring src/ structure
       components/            # Slider, PieChart, TreePanel, ModeToggle, SummaryBar, ResetButton
-      data/                  # defaultTree.ts — Ukraine labor market defaults
+      data/                  # defaultTree.ts, dataHelpers.ts — Ukraine labor market defaults
       hooks/                 # useTreeState, useAutoBalance
       types/                 # TreeNode, GenderSplit, BalanceMode, DashboardState
       utils/                 # calculations.ts, format.ts
@@ -118,6 +118,15 @@ All apps extend shared configs from `packages/config/` (see [packages/config/CLA
 - Test script: `vitest run` (not `vitest` which runs in watch mode)
 - Tests in `src/__tests__/` mirroring source structure (see app CLAUDE.md for details)
 - Use `.ts` extension (not `.tsx`) for files without JSX -- avoids `react-refresh/only-export-components` warning
+
+### Data Conventions
+
+- **Percentages are source of truth** -- absolute values are derived via `Math.round(parent.absoluteValue * percentage / 100)`
+- **Rounding**: Largest-remainder method (Hamilton's method) via `largestRemainder()` in `src/data/dataHelpers.ts` -- ensures sibling percentages sum to exactly 100.0
+- **Node ID scheme**: flat, predictable IDs -- `root`, `gender-male`, `gender-female`, `{gender}-{kved}`, `{gender}-{kved}-{slug}` (all lowercase, kebab-case)
+- **Labels**: Ukrainian language for all node labels
+- **Gender split**: Derived from weighted industry data (52.66/47.34), NOT the PRD's rounded 52/48
+- **Numeric formatting**: Underscore separators for large numbers (`13_500_000`, `1_194_329`)
 
 ### Type Definition Conventions
 

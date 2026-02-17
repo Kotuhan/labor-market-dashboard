@@ -38,9 +38,16 @@ apps/labor-market-dashboard/
     types/
       tree.ts             # Core data model: TreeNode, GenderSplit, BalanceMode, DashboardState
       index.ts            # Barrel re-export (export type)
+    data/
+      defaultTree.ts      # Complete TreeNode tree constant (55 nodes, ~600 lines)
+      dataHelpers.ts      # largestRemainder() utility (Hamilton's method rounding)
+      index.ts            # Barrel re-export (value exports)
     __tests__/
       types/
         tree.test.ts      # Type-safety tests (expectTypeOf + runtime construction)
+      data/
+        defaultTree.test.ts  # 26 tests: structure, math, completeness, DashboardState
+        dataHelpers.test.ts  # 8 tests: largestRemainder edge cases
 ```
 
 ## Key Patterns
@@ -88,6 +95,39 @@ The core data model lives in `src/types/tree.ts`. Key design decisions:
 - Runtime constraints (percentage 0-100, male + female = 100, sibling percentages sum to 100 in auto mode) are NOT enforced at the type level.
 - Barrel re-export in `types/index.ts` uses `export type { ... }` syntax (type-only, zero runtime JS).
 
+## Default Data (`src/data/`)
+
+The `defaultTree` constant provides Ukraine's labor market data as a pre-computed, hardcoded `TreeNode` literal. No runtime calculation, no builder pattern -- explicit literals for auditability.
+
+### Tree Shape
+
+- **55 nodes total**: 1 root + 2 gender + 32 industry (16 per gender) + 20 IT subcategories (10 per gender)
+- **Root**: 13,500,000 employed, genderSplit `{ male: 52.66, female: 47.34 }` (derived from weighted industry data)
+- **Gender nodes**: Male 52.66% / Female 47.34%
+- **Industries**: 16 KVED sectors per gender, only IT (KVED J) has Level 3 children
+- **IT subcategories**: 10 per gender (Розробка ПЗ, QA, PM, HR, DevOps, Аналітики, UI/UX, Data/ML, Маркетинг, Інші ролі)
+
+### `largestRemainder(values, target, decimals)`
+
+Exported from `dataHelpers.ts`. Rounds an array so values sum to exactly `target` using Hamilton's method (floor, then distribute remaining units by largest fractional remainder). Used for auto-balance logic in task-004.
+
+### Barrel Export Convention
+
+`data/index.ts` uses **value exports** (not `export type`), because `defaultTree` and `largestRemainder` are runtime values:
+```typescript
+export { defaultTree } from './defaultTree';
+export { largestRemainder } from './dataHelpers';
+```
+
+Contrast with `types/index.ts` which uses `export type { ... }` for type-only re-exports.
+
+### DO NOT
+
+- Modify `defaultTree` values without re-running largest-remainder normalization across the affected sibling group -- percentages must sum to exactly 100.0
+- Use the PRD's rounded 52/48 gender split -- use the derived 52.66/47.34 (see task-003 Q6 resolution)
+- Add runtime calculation logic to `defaultTree.ts` -- it is purely static data; computation belongs in `utils/` or `hooks/`
+- Use `absoluteValue` as source of truth -- `percentage` is the source of truth; absolute values are derived via `Math.round(parent.absoluteValue * percentage / 100)`
+
 ## Vitest Setup
 
 Vitest is configured via a **separate `vitest.config.ts`** (not merged into `vite.config.ts`):
@@ -104,6 +144,8 @@ Tests live in `src/__tests__/` mirroring the source structure:
 
 ```
 src/types/tree.ts          -->  src/__tests__/types/tree.test.ts
+src/data/defaultTree.ts    -->  src/__tests__/data/defaultTree.test.ts
+src/data/dataHelpers.ts    -->  src/__tests__/data/dataHelpers.test.ts
 src/utils/calculations.ts  -->  src/__tests__/utils/calculations.test.ts  (future)
 ```
 

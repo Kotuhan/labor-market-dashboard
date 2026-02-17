@@ -23,10 +23,20 @@ Tree-based model with 3 levels of depth:
 
 ```
 Root: Total Employed (13,500k)
-  ├─ Level 1: Gender (Male 52% / Female 48%)
-  │   ├─ Level 2: Industries (15+ KVED sectors)
-  │   │   └─ Level 3: Subcategories (75+ breakdowns)
+  ├─ Level 1: Gender (Male 52.66% / Female 47.34%)
+  │   ├─ Level 2: Industries (16 KVED sectors per gender)
+  │   │   └─ Level 3: Subcategories (10 IT roles per gender; other industries are leaves)
 ```
+
+**55 total nodes**: 1 root + 2 gender + 32 industry + 20 IT subcategory
+
+Default data is a pre-computed, hardcoded `TreeNode` literal in `src/data/defaultTree.ts`. No runtime calculation. Percentages are the source of truth; absolute values are derived via `Math.round(parent.absoluteValue * percentage / 100)`.
+
+**Rounding convention**: Largest-remainder method (Hamilton's method) ensures sibling percentages sum to exactly 100.0 at 1 decimal place. Implemented in `src/data/dataHelpers.ts` as `largestRemainder()`.
+
+**Gender split**: Derived from weighted industry data (52.66% male / 47.34% female), not the PRD's approximate 52/48. This is the mathematically consistent value.
+
+**Node ID scheme**: Flat, kebab-case identifiers -- `root`, `gender-male`, `gender-female`, `{gender}-{kved}` (e.g., `male-g`), `{gender}-{kved}-{slug}` (e.g., `male-j-software-dev`).
 
 Key interfaces (implemented in `src/types/tree.ts`):
 - `GenderSplit` — `{ male: number; female: number }` (both required, sum = 100 at runtime)
@@ -88,6 +98,11 @@ Centralized TypeScript, ESLint, and Prettier configs shared across the monorepo.
 | Types (barrel) | `apps/labor-market-dashboard/src/types/index.ts` | Type-only barrel re-export | task-002 |
 | Vitest Config | `apps/labor-market-dashboard/vitest.config.ts` | Test runner config with `@` path alias | task-002 |
 | Type Tests | `apps/labor-market-dashboard/src/__tests__/types/tree.test.ts` | Type-safety tests (11 cases) | task-002 |
+| Default Tree | `apps/labor-market-dashboard/src/data/defaultTree.ts` | Ukraine labor market default data (55 nodes, hardcoded TreeNode literal) | task-003 |
+| Data Helpers | `apps/labor-market-dashboard/src/data/dataHelpers.ts` | `largestRemainder()` rounding utility (Hamilton's method) | task-003 |
+| Data Barrel | `apps/labor-market-dashboard/src/data/index.ts` | Value re-exports for `defaultTree` and `largestRemainder` | task-003 |
+| Data Helper Tests | `apps/labor-market-dashboard/src/__tests__/data/dataHelpers.test.ts` | `largestRemainder` edge cases (8 tests) | task-003 |
+| Default Tree Tests | `apps/labor-market-dashboard/src/__tests__/data/defaultTree.test.ts` | Structure, math, completeness, DashboardState compatibility (26 tests) | task-003 |
 
 ### Planned (Not Yet Implemented)
 
@@ -101,7 +116,6 @@ Centralized TypeScript, ESLint, and Prettier configs shared across the monorepo.
 | ResetButton | `src/components/ResetButton/` | Reset to defaults + confirmation modal |
 | useTreeState | `src/hooks/useTreeState.ts` | Tree state management (reducer/Zustand) |
 | useAutoBalance | `src/hooks/useAutoBalance.ts` | Auto-balance redistribution algorithm |
-| defaultTree | `src/data/defaultTree.ts` | Ukraine labor market default data |
 | calculations | `src/utils/calculations.ts` | Absolute value recalculation |
 | format | `src/utils/format.ts` | Number formatting (UA locale, thousands separator) |
 
@@ -160,9 +174,16 @@ src/
   types/
     tree.ts
     index.ts
+  data/
+    defaultTree.ts
+    dataHelpers.ts
+    index.ts
   __tests__/
     types/
       tree.test.ts
+    data/
+      defaultTree.test.ts
+      dataHelpers.test.ts
 ```
 
 - Test files use the `.test.ts` extension (`.test.tsx` for component tests with JSX)
