@@ -37,7 +37,10 @@ apps/labor-market-dashboard/
     vite-env.d.ts         # Vite client type declarations
     components/
       Slider.tsx          # Interactive slider (controlled, range + numeric + lock)
-      index.ts            # Barrel: export { Slider }, export type { SliderProps }
+      PieChartPanel.tsx   # Pie chart visualization (React.memo, Recharts, read-only)
+      ChartTooltip.tsx    # Custom tooltip for pie chart slices (Ukrainian formatting)
+      ChartLegend.tsx     # Scrollable legend with color swatches (semantic ul/li)
+      index.ts            # Barrel: components + export type for props interfaces
     types/
       tree.ts             # Core data model: TreeNode, GenderSplit, BalanceMode, DashboardState
       actions.ts          # TreeAction discriminated union (5 action types for useReducer)
@@ -45,11 +48,13 @@ apps/labor-market-dashboard/
     data/
       defaultTree.ts      # Complete TreeNode tree constant (55 nodes, ~600 lines)
       dataHelpers.ts      # largestRemainder() utility (Hamilton's method rounding)
+      chartColors.ts      # Color palette constants (KVED-to-hex, gender, ghost, overflow)
       index.ts            # Barrel re-export (value exports)
     utils/
       treeUtils.ts        # Immutable tree traversal/update helpers, SiblingInfo interface
       calculations.ts     # Auto-balance, normalization, recalc, deviation, lock guard
       format.ts           # Ukrainian number formatting (formatAbsoluteValue, formatPercentage)
+      chartDataUtils.ts   # TreeNode-to-Recharts data transform, ghost slice logic, subcategory colors
       index.ts            # Barrel re-export (value + type exports)
     hooks/
       useTreeState.ts     # useReducer-based state management (treeReducer + useTreeState hook)
@@ -61,12 +66,17 @@ apps/labor-market-dashboard/
       data/
         defaultTree.test.ts  # 26 tests: structure, math, completeness, DashboardState
         dataHelpers.test.ts  # 8 tests: largestRemainder edge cases
+        chartColors.test.ts  # 8 tests: palette completeness, valid hex, no duplicates
       utils/
         treeUtils.test.ts    # 15 tests: find, update, immutability, sibling info
         calculations.test.ts # 28 tests: auto-balance, normalize, recalc, deviation, lock guard
         format.test.ts       # 13 tests: formatAbsoluteValue + formatPercentage
+        chartDataUtils.test.ts # 16 tests: toChartData, getNodeColor, generateSubcategoryColors
       components/
         Slider.test.tsx      # 22 tests: rendering, range, numeric, lock, a11y, prop sync
+        PieChartPanel.test.tsx # 11 tests: accessibility, legend, free mode, size variants
+        ChartTooltip.test.tsx  # 5 tests: rendering, null states, ghost slice handling
+        ChartLegend.test.tsx   # 5 tests: list items, labels, semantic markup, maxHeight
       hooks/
         useTreeState.test.ts # 19 tests: all 5 actions, cascading recalc, performance
 ```
@@ -212,6 +222,12 @@ export type { PercentageUpdate } from './calculations';
 
 ## Components (`src/components/`)
 
+### Component Categories
+
+Components fall into two categories:
+1. **Interactive** (Slider): Controlled, dispatch actions upward, minimal local state
+2. **Read-only visualization** (PieChartPanel, ChartTooltip, ChartLegend): Receive data as props, no internal state, no dispatch
+
 ### Slider Component Pattern
 
 The Slider is the first interactive component. It establishes the **controlled component pattern** used by all dashboard components:
@@ -222,6 +238,36 @@ The Slider is the first interactive component. It establishes the **controlled c
 - **No `useCallback`**: Event handlers are not wrapped in `useCallback` -- no expensive child components benefit from referential stability.
 - **SVG icons inline**: Lock/unlock icons use inline SVGs from Heroicons (MIT), with `aria-hidden="true"` since the parent button has its own `aria-label`.
 - **Touch targets**: Lock button uses `h-11 w-11` (44x44px) for WCAG 2.5.5 compliance.
+
+### Pie Chart Visualization Pattern
+
+The PieChartPanel + ChartTooltip + ChartLegend form the **read-only visualization pattern**:
+
+- **Read-only**: Receive `TreeNode[]` as `nodes` prop (not `children` -- see DO NOT below). No internal data state, no dispatch.
+- **`React.memo`**: Wrapped via named function pattern `memo(function PieChartPanel(...))` for devtools clarity. Prevents re-renders when parent re-renders but chart data hasn't changed.
+- **Data transformation outside component**: `toChartData()` in `utils/chartDataUtils.ts` converts TreeNode children to Recharts `PieDataEntry[]` with color mapping and ghost slice logic. Keeps mapping testable without React.
+- **Custom tooltip/legend**: Recharts defaults don't support Ukrainian formatting or scrollable layout. `ChartTooltip` reuses `formatAbsoluteValue`/`formatPercentage` from `utils/format.ts`.
+- **Ghost slice (free mode)**: When percentages sum < 100%, a gray "Нерозподілено" slice is appended. When > 100%, an overflow badge shows the total. Ghost slices excluded from legend and sr-only table.
+- **Size variants**: `size` prop (`'standard'` = 300px, `'mini'` = 200px) controls chart height and radius.
+- **Accessibility**: `<figure role="img" aria-label={...}>` wrapper + `sr-only` data `<table>` fallback for screen readers. Color swatches use `aria-hidden="true"`.
+
+### Recharts Integration
+
+- **Version**: Recharts 2.15.x (not 3.x -- 3.x adds `@reduxjs/toolkit`, `immer`, `react-redux` which conflicts with the project's lightweight `useReducer` approach)
+- **Recharts components used**: `PieChart`, `Pie`, `Cell`, `Tooltip`, `ResponsiveContainer`
+- **Color mapping**: `<Cell fill={entry.color}>` requires hex strings, not CSS custom properties
+- **Custom tooltip**: `<Tooltip content={<ChartTooltip />}>` -- Recharts passes `active` and `payload` props automatically
+- **Animation**: 300ms with `ease-out` easing. `isAnimationActive={true}`. Recharts interrupts previous animations gracefully during rapid updates.
+- **`react-is` peer dependency**: Recharts 2.x depends on `react-is@^18`. With React 19, this produces no hard error (installed cleanly without override).
+
+### Color Palette (`src/data/chartColors.ts`)
+
+- `INDUSTRY_COLORS`: Fixed KVED-code-to-hex mapping (16 colors from Tailwind palette). Same industry = same color across male/female charts.
+- `GENDER_COLORS`: `{ male: '#3B82F6', female: '#EC4899' }` (blue-500, pink-500)
+- `GHOST_SLICE_COLOR`: `#E2E8F0` (slate-200) for free mode unallocated percentage
+- `OVERFLOW_INDICATOR_COLOR`: `#FCA5A5` (red-300)
+- `DEFAULT_NODE_COLOR`: `#94A3B8` (slate-400) fallback
+- Subcategory mini-chart colors: Auto-generated opacity-based shades via `generateSubcategoryColors()` (100% to 40% opacity blended against white)
 
 ### Barrel Export Convention (components/)
 
@@ -234,7 +280,7 @@ Value export for the component, `export type` for the props interface. All futur
 
 ## Format Utility (`src/utils/format.ts`)
 
-Shared formatting functions used by Slider, and reusable by PieChart (task-007) and SummaryBar (task-009):
+Shared formatting functions used by Slider, ChartTooltip, PieChartPanel, and reusable by SummaryBar and future components:
 
 - **`formatAbsoluteValue(value)`**: Ukrainian "тис." abbreviation for values >= 1000; plain integer for values < 1000
 - **`formatPercentage(value)`**: Always 1 decimal place with `%` suffix (`toFixed(1)`)
@@ -272,15 +318,43 @@ Vitest is configured via a **separate `vitest.config.ts`** (not merged into `vit
 Tests live in `src/__tests__/` mirroring the source structure:
 
 ```
-src/types/tree.ts            -->  src/__tests__/types/tree.test.ts
-src/data/defaultTree.ts      -->  src/__tests__/data/defaultTree.test.ts
-src/data/dataHelpers.ts      -->  src/__tests__/data/dataHelpers.test.ts
-src/utils/treeUtils.ts       -->  src/__tests__/utils/treeUtils.test.ts
-src/utils/calculations.ts    -->  src/__tests__/utils/calculations.test.ts
-src/utils/format.ts          -->  src/__tests__/utils/format.test.ts
-src/components/Slider.tsx     -->  src/__tests__/components/Slider.test.tsx
-src/hooks/useTreeState.ts    -->  src/__tests__/hooks/useTreeState.test.ts
+src/types/tree.ts              -->  src/__tests__/types/tree.test.ts
+src/data/defaultTree.ts        -->  src/__tests__/data/defaultTree.test.ts
+src/data/dataHelpers.ts        -->  src/__tests__/data/dataHelpers.test.ts
+src/data/chartColors.ts        -->  src/__tests__/data/chartColors.test.ts
+src/utils/treeUtils.ts         -->  src/__tests__/utils/treeUtils.test.ts
+src/utils/calculations.ts      -->  src/__tests__/utils/calculations.test.ts
+src/utils/format.ts            -->  src/__tests__/utils/format.test.ts
+src/utils/chartDataUtils.ts    -->  src/__tests__/utils/chartDataUtils.test.ts
+src/components/Slider.tsx       -->  src/__tests__/components/Slider.test.tsx
+src/components/PieChartPanel.tsx -->  src/__tests__/components/PieChartPanel.test.tsx
+src/components/ChartTooltip.tsx  -->  src/__tests__/components/ChartTooltip.test.tsx
+src/components/ChartLegend.tsx   -->  src/__tests__/components/ChartLegend.test.tsx
+src/hooks/useTreeState.ts      -->  src/__tests__/hooks/useTreeState.test.ts
 ```
+
+### Recharts Testing in jsdom
+
+Recharts uses `ResponsiveContainer` which relies on `ResizeObserver` (not available in jsdom). Tests must mock it:
+
+```typescript
+beforeAll(() => {
+  global.ResizeObserver = class ResizeObserver {
+    private callback: ResizeObserverCallback;
+    constructor(callback: ResizeObserverCallback) { this.callback = callback; }
+    observe(target: Element) {
+      this.callback(
+        [{ target, contentRect: { width: 400, height: 300, top: 0, left: 0, bottom: 300, right: 400, x: 0, y: 0, toJSON: () => ({}) }, borderBoxSize: [], contentBoxSize: [], devicePixelContentBoxSize: [] }],
+        this,
+      );
+    }
+    unobserve() {}
+    disconnect() {}
+  };
+});
+```
+
+**Limitations**: jsdom cannot verify SVG geometry (arc sizes), animation timing, responsive breakpoints, or touch tooltip behavior. Chart tests focus on DOM structure (figure wrapper, ARIA attributes, sr-only data table, legend items), not visual correctness.
 
 ### React Testing Library (Component Tests)
 
@@ -341,3 +415,7 @@ Use `import type` for type-only imports in test files. The `expectTypeOf` patter
 - Use vitest v2 `vi.fn<[Args], Return>()` syntax -- vitest v3 requires `vi.fn<(args: Args) => Return>()` function signature style
 - Store local percentage state in components -- percentage source of truth is always the tree state (useReducer). Components receive percentage as props and dispatch `SET_PERCENTAGE` actions
 - Use `useCallback` on component event handlers prematurely -- no expensive child components benefit from referential stability in the current component tree
+- Name a prop `children` when passing `TreeNode[]` data -- `children` is reserved by React. Use `nodes` instead (see PieChartPanel for precedent)
+- Use Recharts 3.x -- it adds `@reduxjs/toolkit`, `immer`, `react-redux` as transitive dependencies, conflicting with the project's lightweight `useReducer` approach. Stick with Recharts 2.x
+- Skip the `ResizeObserver` mock in Recharts component tests -- `ResponsiveContainer` will not render without it in jsdom
+- Use CSS custom properties or Tailwind class names for Recharts `fill`/`stroke` props -- Recharts requires hex color strings directly

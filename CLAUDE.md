@@ -21,7 +21,7 @@ User writes in Ukrainian, Claude responds in English.
 - **App**: React 19 with TypeScript 5.7 (strict)
 - **Build**: Vite 6
 - **Styling**: Tailwind CSS v4 (CSS-first config, `@tailwindcss/vite` plugin -- no `tailwind.config.js`)
-- **Charts**: Recharts
+- **Charts**: Recharts 2.x (2.15.x -- not 3.x, see app CLAUDE.md for rationale)
 - **State**: React `useReducer` (no external state library)
 - **Tests**: Vitest + React Testing Library
 - **Linting**: ESLint v8 (legacy `.eslintrc.cjs` format across monorepo)
@@ -34,11 +34,11 @@ apps/
   labor-market-dashboard/    # Main React SPA (Vite + React + TS)
     src/
       __tests__/             # Tests mirroring src/ structure
-      components/            # Slider, PieChart, TreePanel, ModeToggle, SummaryBar, ResetButton
-      data/                  # defaultTree.ts, dataHelpers.ts — Ukraine labor market defaults
+      components/            # Slider, PieChartPanel, ChartTooltip, ChartLegend, TreePanel, ModeToggle, SummaryBar, ResetButton
+      data/                  # defaultTree.ts, dataHelpers.ts, chartColors.ts — Ukraine labor market defaults + chart colors
       hooks/                 # useTreeState (useReducer-based state management)
       types/                 # TreeNode, GenderSplit, BalanceMode, DashboardState, TreeAction
-      utils/                 # treeUtils.ts (tree ops), calculations.ts (auto-balance), format.ts (number display)
+      utils/                 # treeUtils.ts (tree ops), calculations.ts (auto-balance), format.ts (number display), chartDataUtils.ts (chart data transforms)
 packages/config/             # Shared ESLint, TS configs
 architecture/                # ADRs, contracts, diagrams, roadmap, runbooks
 docs/                        # Documentation, tasks (see docs/CLAUDE.md)
@@ -84,6 +84,7 @@ Before completing any implementation:
 - Use WebSearch/WebFetch directly - always use `/research` skill instead
 - Change workflow stages/sequences without updating `docs/workflow.md` Mermaid diagrams and getting user review
 - Auto-resolve open questions — ALL open questions (from PO or TL phases) must be presented to the user for decision via `AskUserQuestion`. The workflow must pause until the user answers
+- Name a prop `children` when passing data arrays (e.g., `TreeNode[]`) -- `children` is reserved by React. Use `nodes`, `items`, or `data` instead
 
 ## Established Patterns
 
@@ -121,6 +122,7 @@ All apps extend shared configs from `packages/config/` (see [packages/config/CLA
 - **jsdom environment**: Required for React component tests (`@testing-library/react`). Pure-logic tests are unaffected.
 - **Test setup file**: `src/__tests__/setup.ts` imports `@testing-library/jest-dom/vitest` (note the `/vitest` entry point)
 - **Vitest v3 mock syntax**: `vi.fn<(arg: Type) => ReturnType>()` -- NOT the v2 tuple style `vi.fn<[Type], ReturnType>()`
+- **ResizeObserver mock**: Required for Recharts `ResponsiveContainer` in jsdom -- see app CLAUDE.md for the mock pattern
 
 ### Data Conventions
 
@@ -144,9 +146,17 @@ All apps extend shared configs from `packages/config/` (see [packages/config/CLA
 
 - **Controlled components**: No internal value state -- receive percentage/values as props, dispatch actions upward
 - **Minimal local state**: Only for input fields needing partial-typing support (string state synced from props via `useEffect`)
+- **Read-only visualization**: Chart components receive `TreeNode[]` as `nodes` prop, render only, no dispatch. Use `React.memo` for performance.
 - **Barrel exports**: `components/index.ts` exports component + `export type` for props interface
 - **Touch targets**: All interactive elements >= 44x44px (WCAG 2.5.5)
 - See [apps/labor-market-dashboard/CLAUDE.md](apps/labor-market-dashboard/CLAUDE.md) for full details
+
+### Chart Color Conventions
+
+- **Industry colors**: Fixed KVED-code-to-hex mapping in `src/data/chartColors.ts` -- ensures consistent colors across male/female charts and future chart types
+- **Hex values required**: Recharts `<Cell fill={color}>` needs hex strings, not Tailwind class names or CSS custom properties
+- **Subcategory colors**: Opacity-based shading from parent industry color via `generateSubcategoryColors()`
+- **Ghost slice**: Gray unallocated slice in free mode when sum < 100%; overflow badge when > 100%
 
 ### Utility Module Conventions
 

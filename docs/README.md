@@ -36,6 +36,7 @@ See [workflow.md](workflow.md) for visual Mermaid diagrams of the task workflow.
 |------|------|---------|
 | task-004 | 2026-02-17 | Implement core state management and auto-balance logic |
 | task-005 | 2026-02-17 | Build interactive slider components with lock toggle and number formatting |
+| task-006 | 2026-02-17 | Pie chart visualization components with Recharts |
 <!-- Completed tasks logged here by PO Summary stage -->
 
 ## Task Directory

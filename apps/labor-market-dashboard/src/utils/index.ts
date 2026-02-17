@@ -8,6 +8,14 @@ export {
 
 export type { PercentageUpdate } from './calculations';
 
+export {
+  generateSubcategoryColors,
+  getNodeColor,
+  toChartData,
+} from './chartDataUtils';
+
+export type { PieDataEntry } from './chartDataUtils';
+
 export { formatAbsoluteValue, formatPercentage } from './format';
 
 export {
