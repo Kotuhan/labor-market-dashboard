@@ -73,6 +73,12 @@ sources: [url1, url2, ...]
 | [Retroactive ADR Patterns](patterns/retroactive-adr-patterns.md) | madr, adr | architecture, documentation | 6months | 2026-01-29 |
 | [System Design Documentation for SaaS](patterns/system-design-documentation-saas-ai-apps.md) | system-design, architecture | architecture, documentation, system-design | 6months | 2026-01-30 |
 
+### Troubleshooting
+
+| Title | Tech | Area | Staleness | Updated |
+|-------|------|------|-----------|---------|
+| [Claude Code VSCode Extension - Conversation/Session Title Management](troubleshooting/claude-code-vscode-conversation-titles.md) | claude-code, vscode, anthropic | ide, developer-tools, conversation-management | 3months | 2026-02-17 |
+
 ### Protocols
 
 | Title | Tech | Area | Staleness | Updated |
