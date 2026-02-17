@@ -1,10 +1,52 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { TreePanel } from '@/components/TreePanel';
 import type { TreePanelProps } from '@/components/TreePanel';
 import type { TreeNode } from '@/types';
+
+/**
+ * Mock ResizeObserver for jsdom (required because TreeRow now renders
+ * PieChartPanel which uses Recharts ResponsiveContainer).
+ */
+beforeAll(() => {
+  global.ResizeObserver = class ResizeObserver {
+    private callback: ResizeObserverCallback;
+
+    constructor(callback: ResizeObserverCallback) {
+      this.callback = callback;
+    }
+
+    observe(target: Element) {
+      this.callback(
+        [
+          {
+            target,
+            contentRect: {
+              width: 400,
+              height: 300,
+              top: 0,
+              left: 0,
+              bottom: 300,
+              right: 400,
+              x: 0,
+              y: 0,
+              toJSON: () => ({}),
+            },
+            borderBoxSize: [],
+            contentBoxSize: [],
+            devicePixelContentBoxSize: [],
+          },
+        ],
+        this,
+      );
+    }
+
+    unobserve() {}
+    disconnect() {}
+  };
+});
 
 /**
  * Create a minimal test gender node for TreePanel tests.
@@ -135,8 +177,9 @@ describe('TreePanel industry nodes', () => {
   it('shows all industry nodes on initial render', () => {
     render(<TreePanel {...makeProps()} />);
 
-    expect(screen.getByText('Торгівля')).toBeInTheDocument();
-    expect(screen.getByText('IT та телеком')).toBeInTheDocument();
+    // Use getAllByText because mini pie chart sr-only tables duplicate labels
+    expect(screen.getAllByText('Торгівля').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('IT та телеком').length).toBeGreaterThanOrEqual(1);
   });
 
   it('does not show chevron on leaf industry nodes', () => {
@@ -163,8 +206,9 @@ describe('TreePanel expand/collapse', () => {
   it('shows subcategories on initial render (IT starts expanded)', () => {
     render(<TreePanel {...makeProps()} />);
 
-    expect(screen.getByText('Розробка ПЗ')).toBeInTheDocument();
-    expect(screen.getByText('QA / Тестування')).toBeInTheDocument();
+    // Use getAllByText because mini pie chart sr-only tables duplicate labels
+    expect(screen.getAllByText('Розробка ПЗ').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('QA / Тестування').length).toBeGreaterThanOrEqual(1);
   });
 
   it('hides subcategories when IT is collapsed', async () => {
@@ -196,8 +240,9 @@ describe('TreePanel expand/collapse', () => {
     });
     await user.click(expandBtn);
 
-    expect(screen.getByText('Розробка ПЗ')).toBeInTheDocument();
-    expect(screen.getByText('QA / Тестування')).toBeInTheDocument();
+    // Use getAllByText because mini pie chart sr-only tables duplicate labels
+    expect(screen.getAllByText('Розробка ПЗ').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText('QA / Тестування').length).toBeGreaterThanOrEqual(1);
   });
 });
 

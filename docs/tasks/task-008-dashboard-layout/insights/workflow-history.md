@@ -160,3 +160,12 @@ This file tracks all agent runs and workflow transitions for this task.
 - **Summary**: TreePanel refactored to single-gender API (genderNode prop, 124 lines). Deviation warnings in TreePanel (gender-level) and TreeRow (subcategory-level). Tests: 16 TreePanel + 26 TreeRow (251 total). QA approved.
 - **Remaining subtasks**: 3 of 5
 
+---
+
+## 2026-02-17 21:00 - Subtask 8.2 Complete
+
+- **Subtask**: 8.2-dashboard-header
+- **Commit**: e6e203b
+- **Summary**: DashboardHeader (109 lines, h1 title, population input, ModeToggle + ResetButton). formatPopulation utility. 22 new tests (273 total). QA approved.
+- **Remaining subtasks**: 2 of 5
+

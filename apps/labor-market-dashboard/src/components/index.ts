@@ -7,6 +7,9 @@ export type { ChartTooltipProps } from './ChartTooltip';
 export { DashboardHeader } from './DashboardHeader';
 export type { DashboardHeaderProps } from './DashboardHeader';
 
+export { GenderSection } from './GenderSection';
+export type { GenderSectionProps } from './GenderSection';
+
 export { ModeToggle } from './ModeToggle';
 export type { ModeToggleProps } from './ModeToggle';
 

@@ -54,3 +54,28 @@ This file tracks all agent runs and workflow transitions for this subtask.
 - **Summary**: DashboardHeader follows established controlled input pattern from Slider. formatPopulation is a simple utility. No new patterns to capture — will be documented in parent context-update.
 - **Next stage**: git-commit
 
+---
+
+## 2026-02-17 21:00 - Git Commit
+
+- **Agent**: director (git-commit)
+- **Result**: completed
+- **Commit**: e6e203b
+- **Commit message**: Create DashboardHeader with population input and mode controls (task-008.2)
+- **Next stage**: done
+
+---
+
+## 2026-02-17 21:00 - Subtask Complete
+
+- **Final Status**: DONE
+- **Files Created**:
+  - apps/labor-market-dashboard/src/components/DashboardHeader.tsx
+  - apps/labor-market-dashboard/src/__tests__/components/DashboardHeader.test.tsx
+- **Files Modified**:
+  - apps/labor-market-dashboard/src/utils/format.ts
+  - apps/labor-market-dashboard/src/utils/index.ts
+  - apps/labor-market-dashboard/src/__tests__/utils/format.test.ts
+  - apps/labor-market-dashboard/src/components/index.ts
+- **Commit**: e6e203b
+
