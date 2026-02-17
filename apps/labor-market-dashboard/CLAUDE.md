@@ -24,7 +24,7 @@ pnpm lint --filter @template/labor-market-dashboard   # ESLint
 apps/labor-market-dashboard/
   index.html              # HTML entry point (lang="uk")
   vite.config.ts          # Vite config (react + tailwindcss plugins, @ alias)
-  vitest.config.ts        # Vitest config (separate from vite, @ alias, node env)
+  vitest.config.ts        # Vitest config (separate from vite, @ alias, jsdom env)
   tsconfig.json           # Extends @template/config/typescript/react
   tsconfig.node.json      # For vite.config.ts + vitest.config.ts
   .eslintrc.cjs           # Extends @template/config/eslint/react
@@ -33,8 +33,11 @@ apps/labor-market-dashboard/
     main.tsx              # React entry point (StrictMode)
     App.tsx               # Root component
     App.css               # App-specific styles (placeholder)
-    index.css             # Tailwind entry: @import "tailwindcss"
+    index.css             # Tailwind entry + custom range input CSS
     vite-env.d.ts         # Vite client type declarations
+    components/
+      Slider.tsx          # Interactive slider (controlled, range + numeric + lock)
+      index.ts            # Barrel: export { Slider }, export type { SliderProps }
     types/
       tree.ts             # Core data model: TreeNode, GenderSplit, BalanceMode, DashboardState
       actions.ts          # TreeAction discriminated union (5 action types for useReducer)
@@ -46,19 +49,24 @@ apps/labor-market-dashboard/
     utils/
       treeUtils.ts        # Immutable tree traversal/update helpers, SiblingInfo interface
       calculations.ts     # Auto-balance, normalization, recalc, deviation, lock guard
+      format.ts           # Ukrainian number formatting (formatAbsoluteValue, formatPercentage)
       index.ts            # Barrel re-export (value + type exports)
     hooks/
       useTreeState.ts     # useReducer-based state management (treeReducer + useTreeState hook)
       index.ts            # Barrel re-export
     __tests__/
+      setup.ts               # Test setup: imports @testing-library/jest-dom/vitest matchers
       types/
-        tree.test.ts      # Type-safety tests (expectTypeOf + runtime construction)
+        tree.test.ts         # Type-safety tests (expectTypeOf + runtime construction)
       data/
         defaultTree.test.ts  # 26 tests: structure, math, completeness, DashboardState
         dataHelpers.test.ts  # 8 tests: largestRemainder edge cases
       utils/
         treeUtils.test.ts    # 15 tests: find, update, immutability, sibling info
         calculations.test.ts # 28 tests: auto-balance, normalize, recalc, deviation, lock guard
+        format.test.ts       # 13 tests: formatAbsoluteValue + formatPercentage
+      components/
+        Slider.test.tsx      # 22 tests: rendering, range, numeric, lock, a11y, prop sync
       hooks/
         useTreeState.test.ts # 19 tests: all 5 actions, cascading recalc, performance
 ```
@@ -202,6 +210,51 @@ export type { PercentageUpdate } from './calculations';
 - Test `useTreeState` hook via `renderHook` -- test `treeReducer` directly instead (faster, no React dependency)
 - Forget to recalculate absolute values after any percentage change -- the reducer always calls `recalcTreeFromRoot` after mutations
 
+## Components (`src/components/`)
+
+### Slider Component Pattern
+
+The Slider is the first interactive component. It establishes the **controlled component pattern** used by all dashboard components:
+
+- **Controlled**: No internal percentage state. `value` always equals props. Dispatch actions upward.
+- **Local state is minimal**: Only `inputValue: string` (for partial typing in numeric input) and `isEditing: boolean` (focus tracking). No percentage duplication.
+- **`useEffect` for prop sync**: When `percentage` changes externally (e.g., sibling auto-balance), `inputValue` syncs automatically. The `isEditing` guard prevents overwriting mid-typing state.
+- **No `useCallback`**: Event handlers are not wrapped in `useCallback` -- no expensive child components benefit from referential stability.
+- **SVG icons inline**: Lock/unlock icons use inline SVGs from Heroicons (MIT), with `aria-hidden="true"` since the parent button has its own `aria-label`.
+- **Touch targets**: Lock button uses `h-11 w-11` (44x44px) for WCAG 2.5.5 compliance.
+
+### Barrel Export Convention (components/)
+
+```typescript
+export { Slider } from './Slider';
+export type { SliderProps } from './Slider';
+```
+
+Value export for the component, `export type` for the props interface. All future components (ModeToggle, PieChart, etc.) follow this pattern.
+
+## Format Utility (`src/utils/format.ts`)
+
+Shared formatting functions used by Slider, and reusable by PieChart (task-007) and SummaryBar (task-009):
+
+- **`formatAbsoluteValue(value)`**: Ukrainian "тис." abbreviation for values >= 1000; plain integer for values < 1000
+- **`formatPercentage(value)`**: Always 1 decimal place with `%` suffix (`toFixed(1)`)
+- **Manual `formatWithSpaces()`** (private): Uses regular ASCII spaces, NOT `Intl.NumberFormat` -- because `Intl.NumberFormat('uk-UA')` produces non-breaking spaces (`\u00A0`) in some environments, causing test flakiness
+
+### DO NOT (Format Utility)
+
+- Use `Intl.NumberFormat` for space-separated thousands -- produces non-breaking spaces inconsistently across environments (Node vs browser)
+- Duplicate formatting logic in components -- always import from `@/utils/format`
+
+## Custom CSS for Native Range Inputs (`src/index.css`)
+
+The `index.css` file contains Tailwind import plus custom CSS for native `<input type="range">` styling:
+
+- **Vendor-prefixed pseudo-elements**: `::-webkit-slider-thumb`, `::-webkit-slider-runnable-track` (Chrome/Safari/Edge) and `::-moz-range-thumb`, `::-moz-range-track` (Firefox)
+- **Tailwind v4 CSS custom properties**: Uses `var(--color-blue-500)`, `var(--color-slate-200)` etc. -- Tailwind v4 exposes all theme colors as CSS custom properties automatically
+- **44x44px touch target**: Achieved via transparent `box-shadow` spread on the thumb (12px spread around 20px thumb)
+- **`:focus-visible`** (not `:focus`): Outline only appears for keyboard navigation, not mouse clicks
+- **`margin-top: -7px`** on WebKit thumb: Centers 20px thumb on 6px track (`-(20-6)/2 = -7`)
+
 ## Vitest Setup
 
 Vitest is configured via a **separate `vitest.config.ts`** (not merged into `vite.config.ts`):
@@ -209,7 +262,9 @@ Vitest is configured via a **separate `vitest.config.ts`** (not merged into `vit
 - Import `defineConfig` from `vitest/config` (not `vite`) for proper `test` field typing
 - `@` path alias must be replicated from `vite.config.ts` (they do not share config)
 - `globals: false` -- tests must explicitly import `describe`, `it`, `expect` from `vitest`
-- `environment: 'node'` for non-DOM tests; change to `'jsdom'` when adding React Testing Library tests
+- `environment: 'jsdom'` -- required for React Testing Library; existing pure-logic tests are unaffected
+- `setupFiles: ['./src/__tests__/setup.ts']` -- imports `@testing-library/jest-dom/vitest` matchers globally (registers `toBeDisabled()`, `toHaveAttribute()`, `toHaveTextContent()`, etc.)
+- `css: false` -- disables CSS processing in tests (avoids Tailwind v4 + jsdom conflicts)
 - Do NOT include `react()` or `tailwindcss()` plugins in vitest config -- unnecessary for tests
 
 ### Test Directory Convention
@@ -217,13 +272,40 @@ Vitest is configured via a **separate `vitest.config.ts`** (not merged into `vit
 Tests live in `src/__tests__/` mirroring the source structure:
 
 ```
-src/types/tree.ts          -->  src/__tests__/types/tree.test.ts
-src/data/defaultTree.ts    -->  src/__tests__/data/defaultTree.test.ts
-src/data/dataHelpers.ts    -->  src/__tests__/data/dataHelpers.test.ts
-src/utils/treeUtils.ts     -->  src/__tests__/utils/treeUtils.test.ts
-src/utils/calculations.ts  -->  src/__tests__/utils/calculations.test.ts
-src/hooks/useTreeState.ts  -->  src/__tests__/hooks/useTreeState.test.ts
+src/types/tree.ts            -->  src/__tests__/types/tree.test.ts
+src/data/defaultTree.ts      -->  src/__tests__/data/defaultTree.test.ts
+src/data/dataHelpers.ts      -->  src/__tests__/data/dataHelpers.test.ts
+src/utils/treeUtils.ts       -->  src/__tests__/utils/treeUtils.test.ts
+src/utils/calculations.ts    -->  src/__tests__/utils/calculations.test.ts
+src/utils/format.ts          -->  src/__tests__/utils/format.test.ts
+src/components/Slider.tsx     -->  src/__tests__/components/Slider.test.tsx
+src/hooks/useTreeState.ts    -->  src/__tests__/hooks/useTreeState.test.ts
 ```
+
+### React Testing Library (Component Tests)
+
+Component tests use `@testing-library/react` v16 + `@testing-library/user-event` v14 + `@testing-library/jest-dom` v6:
+
+- **`userEvent.setup()`** for realistic user interactions (click, type, tab, keyboard). Preferred over `fireEvent` for all interactions except range input `onChange` (userEvent lacks native range slider support).
+- **`fireEvent.change()`** for range input events only (simulating drag).
+- **`afterEach(cleanup)`**: Explicit cleanup required when `globals: false`.
+- **`makeProps()` factory pattern**: Create default props with `Partial<Props>` overrides for test readability.
+- **`vi.fn()` for dispatch mock**: All component tests mock dispatch and assert on exact action payloads. No real reducer used -- tests verify component behavior in isolation.
+- **Test setup file** at `src/__tests__/setup.ts`: Single-line import of `@testing-library/jest-dom/vitest` (note: the `/vitest` entry point, not default) for global matcher registration.
+
+### Vitest v3 Mock Syntax
+
+**IMPORTANT**: Vitest v3 changed the `vi.fn()` generic signature:
+
+```typescript
+// CORRECT (vitest v3): function signature style
+const dispatch = vi.fn<(action: TreeAction) => void>();
+
+// WRONG (vitest v2 style, causes type error in v3):
+const dispatch = vi.fn<[TreeAction], void>();
+```
+
+This is a breaking change from vitest v2. If mock typing fails, check the generic syntax first.
 
 ### Type-Only Testing Pattern
 
@@ -255,3 +337,7 @@ Use `import type` for type-only imports in test files. The `expectTypeOf` patter
 - Forget to add new root-level config files (like `vitest.config.ts`) to `tsconfig.node.json` `include` array -- ESLint will fail to parse them otherwise
 - Use `.tsx` extension for files that contain no JSX (e.g., type definitions, utilities) -- triggers `react-refresh/only-export-components` lint warning
 - Use `enum` for small fixed sets of string values -- use string literal union types instead (e.g., `type BalanceMode = 'auto' | 'free'`)
+- Use `Intl.NumberFormat` for space-separated thousands formatting -- produces non-breaking spaces (`\u00A0`) inconsistently across environments; use manual `formatWithSpaces()` in `format.ts` instead
+- Use vitest v2 `vi.fn<[Args], Return>()` syntax -- vitest v3 requires `vi.fn<(args: Args) => Return>()` function signature style
+- Store local percentage state in components -- percentage source of truth is always the tree state (useReducer). Components receive percentage as props and dispatch `SET_PERCENTAGE` actions
+- Use `useCallback` on component event handlers prematurely -- no expensive child components benefit from referential stability in the current component tree

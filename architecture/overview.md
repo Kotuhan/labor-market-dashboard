@@ -120,18 +120,22 @@ Centralized TypeScript, ESLint, and Prettier configs shared across the monorepo.
 | Tree Utils Tests | `apps/labor-market-dashboard/src/__tests__/utils/treeUtils.test.ts` | find, update, immutability, sibling info (15 tests) | task-004 |
 | Calculations Tests | `apps/labor-market-dashboard/src/__tests__/utils/calculations.test.ts` | auto-balance, normalize, recalc, deviation, lock guard (28 tests) | task-004 |
 | useTreeState Tests | `apps/labor-market-dashboard/src/__tests__/hooks/useTreeState.test.ts` | All 5 actions, cascading recalc, performance (19 tests) | task-004 |
+| Slider | `apps/labor-market-dashboard/src/components/Slider.tsx` | Controlled range input + numeric input + lock toggle (first UI component) | task-005 |
+| Components Barrel | `apps/labor-market-dashboard/src/components/index.ts` | Barrel re-export: value + type exports for components | task-005 |
+| Format Utility | `apps/labor-market-dashboard/src/utils/format.ts` | `formatAbsoluteValue()` (Ukrainian "тис." abbreviation), `formatPercentage()` (1 decimal), manual `formatWithSpaces()` | task-005 |
+| Test Setup | `apps/labor-market-dashboard/src/__tests__/setup.ts` | Global `@testing-library/jest-dom/vitest` matcher registration | task-005 |
+| Format Tests | `apps/labor-market-dashboard/src/__tests__/utils/format.test.ts` | 13 tests: formatAbsoluteValue + formatPercentage edge cases | task-005 |
+| Slider Tests | `apps/labor-market-dashboard/src/__tests__/components/Slider.test.tsx` | 22 tests: rendering, range input, numeric input, lock toggle, a11y, prop sync | task-005 |
 
 ### Planned (Not Yet Implemented)
 
 | Module | Location | Responsibility |
 |--------|----------|----------------|
-| Slider | `src/components/Slider/` | Range input + numeric input + lock toggle |
 | PieChart | `src/components/PieChart/` | Recharts wrapper with animations & tooltips |
 | TreePanel | `src/components/TreePanel/` | Expandable/collapsible category hierarchy |
 | ModeToggle | `src/components/ModeToggle/` | Auto-balance / Free mode switch |
 | SummaryBar | `src/components/SummaryBar/` | Total population input + statistics |
 | ResetButton | `src/components/ResetButton/` | Reset to defaults + confirmation modal |
-| format | `src/utils/format.ts` | Number formatting (UA locale, thousands separator) |
 
 ## Security Architecture
 
@@ -173,8 +177,10 @@ Vitest is the test runner for all apps in the monorepo. Each app that has tests 
 | Config import | `vitest/config` (not `vite`) | Provides proper `test` field typing |
 | `@` path alias | Replicated from `vite.config.ts` | Tests can use the same `@/` imports as source code |
 | `globals` | `false` | Explicit imports (`describe`, `it`, `expect` from `vitest`) avoid global namespace pollution |
-| `environment` | `'node'` for non-DOM tests; `'jsdom'` for React component tests | Minimize test overhead |
-| Plugins | None for type-only tests; add `react()` etc. only when DOM is needed | Avoid unnecessary build overhead |
+| `environment` | `'jsdom'` | Required for React component tests; existing pure-logic tests are unaffected |
+| `setupFiles` | `['./src/__tests__/setup.ts']` | Registers `@testing-library/jest-dom/vitest` matchers globally |
+| `css` | `false` | Disables CSS processing in tests (avoids Tailwind v4 + jsdom conflicts) |
+| Plugins | None -- do not include `react()` or `tailwindcss()` in vitest config | Avoid unnecessary build overhead |
 
 The `vitest.config.ts` file must be added to `tsconfig.node.json`'s `include` array for ESLint type-checking to work.
 
@@ -205,6 +211,33 @@ src/
 - Directory structure under `__tests__/` mirrors the `src/` structure (e.g., `src/__tests__/types/` for `src/types/`)
 - Type-only test imports use `import type { ... }` syntax
 - Each test file imports from the corresponding source using the `@/` path alias
+
+### Component Testing Convention
+
+Component tests use React Testing Library (RTL) with these patterns:
+
+| Library | Version | Purpose |
+|---------|---------|---------|
+| `@testing-library/react` | 16.x | `render`, `screen`, `cleanup`, `fireEvent` |
+| `@testing-library/user-event` | 14.x | Realistic user interactions (`userEvent.setup()`) |
+| `@testing-library/jest-dom` | 6.x | Extended DOM matchers (`toBeDisabled`, `toHaveAttribute`) |
+| `jsdom` | 25.x | DOM environment for Vitest |
+
+- **`userEvent.setup()`** preferred over `fireEvent` for all interactions except range input `onChange`
+- **`afterEach(cleanup)`** required when `globals: false`
+- **`makeProps()` factory pattern** with `Partial<Props>` overrides for test readability
+- **`vi.fn()` for dispatch mock** -- tests verify component behavior in isolation, no real reducer
+- **Test setup file**: `src/__tests__/setup.ts` imports `@testing-library/jest-dom/vitest` (note: the `/vitest` entry point)
+
+### Controlled Component Pattern
+
+All interactive dashboard components follow the controlled component pattern established by Slider:
+
+- No internal state for the primary value (percentage). Value always equals props.
+- Minimal local state only where needed (e.g., `inputValue: string` for mid-typing text input).
+- Dispatch `TreeAction` upward to the reducer; parent re-renders with new props.
+- `useEffect` for prop sync when external changes arrive (e.g., sibling auto-balance).
+- No `useCallback` on handlers unless expensive child components benefit from referential stability.
 
 ## Known Limitations
 

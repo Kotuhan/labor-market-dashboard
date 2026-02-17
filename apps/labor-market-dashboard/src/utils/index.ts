@@ -8,6 +8,8 @@ export {
 
 export type { PercentageUpdate } from './calculations';
 
+export { formatAbsoluteValue, formatPercentage } from './format';
+
 export {
   collectSiblingInfo,
   findNodeById,

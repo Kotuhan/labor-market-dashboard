@@ -38,7 +38,7 @@ apps/
       data/                  # defaultTree.ts, dataHelpers.ts — Ukraine labor market defaults
       hooks/                 # useTreeState (useReducer-based state management)
       types/                 # TreeNode, GenderSplit, BalanceMode, DashboardState, TreeAction
-      utils/                 # treeUtils.ts (tree ops), calculations.ts (auto-balance, recalc)
+      utils/                 # treeUtils.ts (tree ops), calculations.ts (auto-balance), format.ts (number display)
 packages/config/             # Shared ESLint, TS configs
 architecture/                # ADRs, contracts, diagrams, roadmap, runbooks
 docs/                        # Documentation, tasks (see docs/CLAUDE.md)
@@ -118,6 +118,9 @@ All apps extend shared configs from `packages/config/` (see [packages/config/CLA
 - Test script: `vitest run` (not `vitest` which runs in watch mode)
 - Tests in `src/__tests__/` mirroring source structure (see app CLAUDE.md for details)
 - Use `.ts` extension (not `.tsx`) for files without JSX -- avoids `react-refresh/only-export-components` warning
+- **jsdom environment**: Required for React component tests (`@testing-library/react`). Pure-logic tests are unaffected.
+- **Test setup file**: `src/__tests__/setup.ts` imports `@testing-library/jest-dom/vitest` (note the `/vitest` entry point)
+- **Vitest v3 mock syntax**: `vi.fn<(arg: Type) => ReturnType>()` -- NOT the v2 tuple style `vi.fn<[Type], ReturnType>()`
 
 ### Data Conventions
 
@@ -126,7 +129,8 @@ All apps extend shared configs from `packages/config/` (see [packages/config/CLA
 - **Node ID scheme**: flat, predictable IDs -- `root`, `gender-male`, `gender-female`, `{gender}-{kved}`, `{gender}-{kved}-{slug}` (all lowercase, kebab-case)
 - **Labels**: Ukrainian language for all node labels
 - **Gender split**: Derived from weighted industry data (52.66/47.34), NOT the PRD's rounded 52/48
-- **Numeric formatting**: Underscore separators for large numbers (`13_500_000`, `1_194_329`)
+- **Numeric formatting in code**: Underscore separators for large numbers (`13_500_000`, `1_194_329`)
+- **Display formatting**: Ukrainian "тис." abbreviation for values >= 1000 (e.g., "13 500 тис."); percentages always 1 decimal place (e.g., "18.5%"). Use `formatAbsoluteValue()` and `formatPercentage()` from `src/utils/format.ts`
 
 ### State Management Pattern
 
@@ -134,6 +138,14 @@ All apps extend shared configs from `packages/config/` (see [packages/config/CLA
 - Pure utility functions in `utils/` for testability; reducer composes them; hook is a thin wrapper
 - Immutable tree updates via recursive spread (no Immer, no structural sharing)
 - `largestRemainder()` used for all percentage rounding (1 decimal place, exact 100.0 sums)
+- See [apps/labor-market-dashboard/CLAUDE.md](apps/labor-market-dashboard/CLAUDE.md) for full details
+
+### Component Pattern
+
+- **Controlled components**: No internal value state -- receive percentage/values as props, dispatch actions upward
+- **Minimal local state**: Only for input fields needing partial-typing support (string state synced from props via `useEffect`)
+- **Barrel exports**: `components/index.ts` exports component + `export type` for props interface
+- **Touch targets**: All interactive elements >= 44x44px (WCAG 2.5.5)
 - See [apps/labor-market-dashboard/CLAUDE.md](apps/labor-market-dashboard/CLAUDE.md) for full details
 
 ### Utility Module Conventions
