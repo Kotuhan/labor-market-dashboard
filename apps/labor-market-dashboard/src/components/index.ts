@@ -4,6 +4,9 @@ export type { ChartLegendProps, LegendItem } from './ChartLegend';
 export { ChartTooltip } from './ChartTooltip';
 export type { ChartTooltipProps } from './ChartTooltip';
 
+export { DashboardHeader } from './DashboardHeader';
+export type { DashboardHeaderProps } from './DashboardHeader';
+
 export { ModeToggle } from './ModeToggle';
 export type { ModeToggleProps } from './ModeToggle';
 

@@ -151,3 +151,12 @@ This file tracks all agent runs and workflow transitions for this task.
 - **Summary**: ModeToggle (role="switch", aria-checked, 59 lines) + ResetButton (confirm() guard, 51 lines). 22 new tests (244 total). QA approved.
 - **Remaining subtasks**: 4 of 5
 
+---
+
+## 2026-02-17 20:45 - Subtask 8.3 Complete
+
+- **Subtask**: 8.3-tree-panel-refactor
+- **Commit**: 1cf347e
+- **Summary**: TreePanel refactored to single-gender API (genderNode prop, 124 lines). Deviation warnings in TreePanel (gender-level) and TreeRow (subcategory-level). Tests: 16 TreePanel + 26 TreeRow (251 total). QA approved.
+- **Remaining subtasks**: 3 of 5
+

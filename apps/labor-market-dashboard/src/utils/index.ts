@@ -16,7 +16,7 @@ export {
 
 export type { PieDataEntry } from './chartDataUtils';
 
-export { formatAbsoluteValue, formatPercentage } from './format';
+export { formatAbsoluteValue, formatPercentage, formatPopulation } from './format';
 
 export {
   collectSiblingInfo,

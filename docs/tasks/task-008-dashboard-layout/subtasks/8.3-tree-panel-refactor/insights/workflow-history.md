@@ -52,3 +52,26 @@ This file tracks all agent runs and workflow transitions for this subtask.
 - **Summary**: TreePanel API change is a transient refactor within the task-008 decomposition. The new single-gender API and deviation warning pattern will be captured in the parent task's context-update after all subtasks complete.
 - **Next stage**: git-commit
 
+---
+
+## 2026-02-17 20:45 - Git Commit
+
+- **Agent**: director (git-commit)
+- **Result**: completed
+- **Commit**: 1cf347e
+- **Commit message**: Refactor TreePanel to single-gender API with deviation warnings (task-008.3)
+- **Next stage**: done
+
+---
+
+## 2026-02-17 20:45 - Subtask Complete
+
+- **Final Status**: DONE
+- **Files Modified**:
+  - apps/labor-market-dashboard/src/components/TreePanel.tsx
+  - apps/labor-market-dashboard/src/components/TreeRow.tsx
+  - apps/labor-market-dashboard/src/__tests__/components/TreePanel.test.tsx
+  - apps/labor-market-dashboard/src/__tests__/components/TreeRow.test.tsx
+  - apps/labor-market-dashboard/src/App.tsx
+- **Commit**: 1cf347e
+

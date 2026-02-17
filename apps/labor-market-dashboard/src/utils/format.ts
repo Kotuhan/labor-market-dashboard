@@ -51,6 +51,25 @@ export function formatPercentage(value: number): string {
 }
 
 /**
+ * Format a population value with space-separated thousands groups.
+ *
+ * Unlike formatAbsoluteValue, this does NOT abbreviate with "тис." --
+ * it returns the full number with spaces. Used by the population input field.
+ *
+ * @example
+ * formatPopulation(13_500_000) // "13 500 000"
+ * formatPopulation(1_194_329)  // "1 194 329"
+ * formatPopulation(500)        // "500"
+ * formatPopulation(0)          // "0"
+ *
+ * @param value - The population value to format
+ * @returns Formatted string with space-separated thousands
+ */
+export function formatPopulation(value: number): string {
+  return formatWithSpaces(Math.round(value));
+}
+
+/**
  * Format an integer with space-separated thousands groups.
  *
  * @param value - Integer to format

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 
-import { formatAbsoluteValue, formatPercentage } from '@/utils/format';
+import { formatAbsoluteValue, formatPercentage, formatPopulation } from '@/utils/format';
 
 describe('formatAbsoluteValue', () => {
   it('formats large number with "тис." abbreviation', () => {
@@ -58,5 +58,34 @@ describe('formatPercentage', () => {
 
   it('formats value with more decimals by rounding to 1 decimal', () => {
     expect(formatPercentage(52.66)).toBe('52.7%');
+  });
+});
+
+// -------------------------------------------------------
+// formatPopulation tests
+// -------------------------------------------------------
+describe('formatPopulation', () => {
+  it('formats millions with space-separated groups', () => {
+    expect(formatPopulation(13_500_000)).toBe('13 500 000');
+  });
+
+  it('formats values over one million', () => {
+    expect(formatPopulation(1_194_329)).toBe('1 194 329');
+  });
+
+  it('formats thousands', () => {
+    expect(formatPopulation(50_000)).toBe('50 000');
+  });
+
+  it('formats values under 1000 without separators', () => {
+    expect(formatPopulation(500)).toBe('500');
+  });
+
+  it('formats zero', () => {
+    expect(formatPopulation(0)).toBe('0');
+  });
+
+  it('rounds to nearest integer', () => {
+    expect(formatPopulation(13_500_000.7)).toBe('13 500 001');
   });
 });
