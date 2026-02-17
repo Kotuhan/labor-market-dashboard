@@ -12,7 +12,7 @@ Single-page application for interactive labor market modeling.
 | Component | Technology | Purpose |
 |-----------|------------|---------|
 | App Shell | React 19 / Vite 6 | Component framework, fast HMR (per ADR-0001) |
-| State Management | Zustand / useReducer | Tree state, auto-balance logic |
+| State Management | React useReducer | Tree state via `treeReducer`, auto-balance logic (per ADR-0004) |
 | Visualization | Recharts | Animated pie charts with tooltips |
 | Styling | Tailwind CSS v4 | CSS-first config, `@tailwindcss/vite` plugin (per ADR-0002) |
 | Hosting | GitHub Pages | Static SPA, no backend |
@@ -46,13 +46,21 @@ Key interfaces (implemented in `src/types/tree.ts`):
 
 ### Auto-Balance Algorithm
 
-When a slider changes in auto-balance mode:
-1. Locked siblings remain fixed
-2. Remaining percentage redistributed proportionally among unlocked siblings
-3. Absolute values recalculated recursively down the tree
-4. Sum always equals 100% at each level
+Implemented in `src/utils/calculations.ts` as `autoBalance()`. When a slider changes in auto-balance mode:
 
-Free mode: independent sliders, sum may deviate from 100% (warning shown).
+1. Separate locked, changed, and unlocked siblings
+2. Clamp changed value to `[0, 100 - lockedSum]`
+3. Distribute remaining to unlocked siblings:
+   - Proportionally if `oldUnlockedSum > 0`
+   - Equally if all unlocked are at 0%
+4. Apply `largestRemainder()` for exact 100.0 sum at 1 decimal place
+5. Absolute values recalculated recursively from root via `recalcAbsoluteValues()`
+
+Free mode: independent sliders, sum may deviate from 100% (tracked by `getSiblingDeviation()`).
+
+Lock guard: `canToggleLock()` prevents locking the last unlocked sibling in any group.
+
+Mode switch normalization: switching free-to-auto triggers `normalizeGroup()` on all sibling groups recursively.
 
 ### Shared Config Package
 
@@ -77,7 +85,7 @@ Centralized TypeScript, ESLint, and Prettier configs shared across the monorepo.
 | Styles | Tailwind CSS | 4.x | CSS-first config, no JS config file | ADR-0002 |
 | Linting | ESLint | 8.x (legacy format) | Monorepo consistency, `.eslintrc.cjs` | ADR-0003 |
 | Charts | Recharts | TBD | Pie chart support, animations | -- |
-| State | Zustand / useReducer | TBD | Lightweight tree state | -- |
+| State | React useReducer | 19.x (built-in) | Lightweight tree state, exported reducer for testability | ADR-0004 |
 | Tests | Vitest + RTL | 3.x | Unit and integration tests | -- |
 | CI/CD | GitHub Actions | TBD | Auto-deploy on push to main | -- |
 | Hosting | GitHub Pages | -- | Free, static SPA | -- |
@@ -103,6 +111,15 @@ Centralized TypeScript, ESLint, and Prettier configs shared across the monorepo.
 | Data Barrel | `apps/labor-market-dashboard/src/data/index.ts` | Value re-exports for `defaultTree` and `largestRemainder` | task-003 |
 | Data Helper Tests | `apps/labor-market-dashboard/src/__tests__/data/dataHelpers.test.ts` | `largestRemainder` edge cases (8 tests) | task-003 |
 | Default Tree Tests | `apps/labor-market-dashboard/src/__tests__/data/defaultTree.test.ts` | Structure, math, completeness, DashboardState compatibility (26 tests) | task-003 |
+| Action Types | `apps/labor-market-dashboard/src/types/actions.ts` | TreeAction discriminated union (5 action types for useReducer) | task-004 |
+| Tree Utils | `apps/labor-market-dashboard/src/utils/treeUtils.ts` | Immutable tree traversal/update helpers (find, update, collect), SiblingInfo interface | task-004 |
+| Calculations | `apps/labor-market-dashboard/src/utils/calculations.ts` | autoBalance, normalizeGroup, recalcAbsoluteValues, getSiblingDeviation, canToggleLock | task-004 |
+| Utils Barrel | `apps/labor-market-dashboard/src/utils/index.ts` | Value + type re-exports for utils module | task-004 |
+| useTreeState Hook | `apps/labor-market-dashboard/src/hooks/useTreeState.ts` | useReducer-based state: treeReducer + useTreeState hook + initialState | task-004 |
+| Hooks Barrel | `apps/labor-market-dashboard/src/hooks/index.ts` | Value re-exports for hooks module | task-004 |
+| Tree Utils Tests | `apps/labor-market-dashboard/src/__tests__/utils/treeUtils.test.ts` | find, update, immutability, sibling info (15 tests) | task-004 |
+| Calculations Tests | `apps/labor-market-dashboard/src/__tests__/utils/calculations.test.ts` | auto-balance, normalize, recalc, deviation, lock guard (28 tests) | task-004 |
+| useTreeState Tests | `apps/labor-market-dashboard/src/__tests__/hooks/useTreeState.test.ts` | All 5 actions, cascading recalc, performance (19 tests) | task-004 |
 
 ### Planned (Not Yet Implemented)
 
@@ -114,9 +131,6 @@ Centralized TypeScript, ESLint, and Prettier configs shared across the monorepo.
 | ModeToggle | `src/components/ModeToggle/` | Auto-balance / Free mode switch |
 | SummaryBar | `src/components/SummaryBar/` | Total population input + statistics |
 | ResetButton | `src/components/ResetButton/` | Reset to defaults + confirmation modal |
-| useTreeState | `src/hooks/useTreeState.ts` | Tree state management (reducer/Zustand) |
-| useAutoBalance | `src/hooks/useAutoBalance.ts` | Auto-balance redistribution algorithm |
-| calculations | `src/utils/calculations.ts` | Absolute value recalculation |
 | format | `src/utils/format.ts` | Number formatting (UA locale, thousands separator) |
 
 ## Security Architecture
@@ -146,6 +160,7 @@ Centralized TypeScript, ESLint, and Prettier configs shared across the monorepo.
 | [ADR-0001](decisions/adr-0001-adopt-react-vite-typescript-frontend-stack.md) | Adopt React 19 + Vite 6 + TypeScript 5.7 as frontend stack | accepted | task-001 |
 | [ADR-0002](decisions/adr-0002-use-tailwind-css-v4-css-first-config.md) | Use Tailwind CSS v4 with CSS-first configuration | accepted | task-001 |
 | [ADR-0003](decisions/adr-0003-maintain-eslint-v8-legacy-config-format.md) | Maintain ESLint v8 legacy config format across monorepo | accepted | task-001 |
+| [ADR-0004](decisions/adr-0004-use-react-usereducer-for-state-management.md) | Use React useReducer for dashboard state management | accepted | task-004 |
 
 ## Development Conventions
 

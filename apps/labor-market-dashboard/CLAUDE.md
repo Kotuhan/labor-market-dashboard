@@ -37,17 +37,30 @@ apps/labor-market-dashboard/
     vite-env.d.ts         # Vite client type declarations
     types/
       tree.ts             # Core data model: TreeNode, GenderSplit, BalanceMode, DashboardState
+      actions.ts          # TreeAction discriminated union (5 action types for useReducer)
       index.ts            # Barrel re-export (export type)
     data/
       defaultTree.ts      # Complete TreeNode tree constant (55 nodes, ~600 lines)
       dataHelpers.ts      # largestRemainder() utility (Hamilton's method rounding)
       index.ts            # Barrel re-export (value exports)
+    utils/
+      treeUtils.ts        # Immutable tree traversal/update helpers, SiblingInfo interface
+      calculations.ts     # Auto-balance, normalization, recalc, deviation, lock guard
+      index.ts            # Barrel re-export (value + type exports)
+    hooks/
+      useTreeState.ts     # useReducer-based state management (treeReducer + useTreeState hook)
+      index.ts            # Barrel re-export
     __tests__/
       types/
         tree.test.ts      # Type-safety tests (expectTypeOf + runtime construction)
       data/
         defaultTree.test.ts  # 26 tests: structure, math, completeness, DashboardState
         dataHelpers.test.ts  # 8 tests: largestRemainder edge cases
+      utils/
+        treeUtils.test.ts    # 15 tests: find, update, immutability, sibling info
+        calculations.test.ts # 28 tests: auto-balance, normalize, recalc, deviation, lock guard
+      hooks/
+        useTreeState.test.ts # 19 tests: all 5 actions, cascading recalc, performance
 ```
 
 ## Key Patterns
@@ -128,6 +141,67 @@ Contrast with `types/index.ts` which uses `export type { ... }` for type-only re
 - Add runtime calculation logic to `defaultTree.ts` -- it is purely static data; computation belongs in `utils/` or `hooks/`
 - Use `absoluteValue` as source of truth -- `percentage` is the source of truth; absolute values are derived via `Math.round(parent.absoluteValue * percentage / 100)`
 
+## State Management (`src/hooks/`, `src/utils/`)
+
+The dashboard uses React `useReducer` (not Zustand) for all state management. The architecture follows a strict layered pattern:
+
+```
+useTreeState (thin hook)  -->  treeReducer (exported, testable)  -->  pure utility functions (utils/)
+```
+
+### Key Design Decisions
+
+- **`treeReducer` is exported as a named function** for direct unit testing without React rendering (`renderHook` is not needed)
+- **`initialState` is exported** for test assertions and reference equality checks
+- **All tree mutations are immutable** -- recursive clone via spread operator, no structural sharing (negligible cost for 55 nodes)
+- **Always recalculate absolute values from root** after any percentage change -- simplicity over optimization (<1ms for 55 nodes)
+- **Locks persist across mode switches** -- `SET_BALANCE_MODE` does not clear locks
+
+### Action Types (`src/types/actions.ts`)
+
+5 actions as a discriminated union on `type` field:
+- `SET_PERCENTAGE` -- triggers auto-balance (auto mode) or single-node update (free mode)
+- `TOGGLE_LOCK` -- with lock guard (`canToggleLock` prevents locking the last unlocked sibling)
+- `SET_BALANCE_MODE` -- free-to-auto normalizes all sibling groups to 100%
+- `SET_TOTAL_POPULATION` -- recalculates all absolute values, percentages unchanged
+- `RESET` -- returns `initialState` (reference to `defaultTree`)
+
+### Utils Module (`src/utils/`)
+
+Two files with distinct responsibilities:
+
+- **`treeUtils.ts`**: Tree traversal and immutable update helpers (`findNodeById`, `findParentById`, `updateNodeInTree`, `updateChildrenInTree`, `collectSiblingInfo`). Also defines `SiblingInfo` interface.
+- **`calculations.ts`**: Pure mathematical functions (`autoBalance`, `normalizeGroup`, `recalcAbsoluteValues`, `getSiblingDeviation`, `canToggleLock`). Also defines `PercentageUpdate` interface.
+
+Interfaces (`SiblingInfo`, `PercentageUpdate`) are co-located with the functions that produce/consume them in `utils/`, not in `types/`. The barrel `utils/index.ts` re-exports them with `export type { ... }`.
+
+### Barrel Export Convention (hooks/ and utils/)
+
+`hooks/index.ts` uses **value exports** (runtime functions):
+```typescript
+export { initialState, treeReducer, useTreeState } from './useTreeState';
+```
+
+`utils/index.ts` uses **mixed exports** -- value exports for functions, `export type` for interfaces:
+```typescript
+export { autoBalance, canToggleLock, ... } from './calculations';
+export type { PercentageUpdate } from './calculations';
+```
+
+### Auto-Balance Algorithm Summary
+
+1. Separate locked, changed, and unlocked siblings
+2. Clamp changed value to `[0, 100 - lockedSum]`
+3. Distribute remaining to unlocked: proportionally if `oldUnlockedSum > 0`, equally if all at 0%
+4. Apply `largestRemainder(allRaw, 100, 1)` for exact 100.0 sum
+
+### DO NOT (State Management)
+
+- Use `toBe(0)` for floating-point deviation checks -- use `toBeCloseTo(0, 1)` instead. `Math.round(-0.01 * 10) / 10` produces `-0` in JavaScript, which fails strict `toBe(0)` equality
+- Put `SiblingInfo` or `PercentageUpdate` in `types/` -- they belong in `utils/` co-located with their producing functions
+- Test `useTreeState` hook via `renderHook` -- test `treeReducer` directly instead (faster, no React dependency)
+- Forget to recalculate absolute values after any percentage change -- the reducer always calls `recalcTreeFromRoot` after mutations
+
 ## Vitest Setup
 
 Vitest is configured via a **separate `vitest.config.ts`** (not merged into `vite.config.ts`):
@@ -146,7 +220,9 @@ Tests live in `src/__tests__/` mirroring the source structure:
 src/types/tree.ts          -->  src/__tests__/types/tree.test.ts
 src/data/defaultTree.ts    -->  src/__tests__/data/defaultTree.test.ts
 src/data/dataHelpers.ts    -->  src/__tests__/data/dataHelpers.test.ts
-src/utils/calculations.ts  -->  src/__tests__/utils/calculations.test.ts  (future)
+src/utils/treeUtils.ts     -->  src/__tests__/utils/treeUtils.test.ts
+src/utils/calculations.ts  -->  src/__tests__/utils/calculations.test.ts
+src/hooks/useTreeState.ts  -->  src/__tests__/hooks/useTreeState.test.ts
 ```
 
 ### Type-Only Testing Pattern

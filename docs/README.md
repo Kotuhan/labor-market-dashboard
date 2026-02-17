@@ -34,6 +34,7 @@ See [workflow.md](workflow.md) for visual Mermaid diagrams of the task workflow.
 
 | Task | Date | Summary |
 |------|------|---------|
+| task-004 | 2026-02-17 | Implement core state management and auto-balance logic |
 <!-- Completed tasks logged here by PO Summary stage -->
 
 ## Task Directory

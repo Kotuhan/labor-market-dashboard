@@ -22,7 +22,7 @@ User writes in Ukrainian, Claude responds in English.
 - **Build**: Vite 6
 - **Styling**: Tailwind CSS v4 (CSS-first config, `@tailwindcss/vite` plugin -- no `tailwind.config.js`)
 - **Charts**: Recharts
-- **State**: Zustand / useReducer
+- **State**: React `useReducer` (no external state library)
 - **Tests**: Vitest + React Testing Library
 - **Linting**: ESLint v8 (legacy `.eslintrc.cjs` format across monorepo)
 - **Hosting**: GitHub Pages via GitHub Actions
@@ -36,9 +36,9 @@ apps/
       __tests__/             # Tests mirroring src/ structure
       components/            # Slider, PieChart, TreePanel, ModeToggle, SummaryBar, ResetButton
       data/                  # defaultTree.ts, dataHelpers.ts — Ukraine labor market defaults
-      hooks/                 # useTreeState, useAutoBalance
-      types/                 # TreeNode, GenderSplit, BalanceMode, DashboardState
-      utils/                 # calculations.ts, format.ts
+      hooks/                 # useTreeState (useReducer-based state management)
+      types/                 # TreeNode, GenderSplit, BalanceMode, DashboardState, TreeAction
+      utils/                 # treeUtils.ts (tree ops), calculations.ts (auto-balance, recalc)
 packages/config/             # Shared ESLint, TS configs
 architecture/                # ADRs, contracts, diagrams, roadmap, runbooks
 docs/                        # Documentation, tasks (see docs/CLAUDE.md)
@@ -127,6 +127,20 @@ All apps extend shared configs from `packages/config/` (see [packages/config/CLA
 - **Labels**: Ukrainian language for all node labels
 - **Gender split**: Derived from weighted industry data (52.66/47.34), NOT the PRD's rounded 52/48
 - **Numeric formatting**: Underscore separators for large numbers (`13_500_000`, `1_194_329`)
+
+### State Management Pattern
+
+- **useReducer** with exported reducer function for direct testing (no `renderHook` needed)
+- Pure utility functions in `utils/` for testability; reducer composes them; hook is a thin wrapper
+- Immutable tree updates via recursive spread (no Immer, no structural sharing)
+- `largestRemainder()` used for all percentage rounding (1 decimal place, exact 100.0 sums)
+- See [apps/labor-market-dashboard/CLAUDE.md](apps/labor-market-dashboard/CLAUDE.md) for full details
+
+### Utility Module Conventions
+
+- Interfaces co-located with producing functions in `utils/` (not in `types/`), e.g., `SiblingInfo` in `treeUtils.ts`
+- Barrel exports in `utils/index.ts`: value exports for functions, `export type` for interfaces
+- ESLint enforces import ordering: external packages first, then `@/` aliases (grouped and separated by blank line), then relative imports
 
 ### Type Definition Conventions
 

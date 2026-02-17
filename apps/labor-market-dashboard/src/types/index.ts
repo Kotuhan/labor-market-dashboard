@@ -4,3 +4,5 @@ export type {
   GenderSplit,
   TreeNode,
 } from './tree';
+
+export type { TreeAction } from './actions';

@@ -1,0 +1,241 @@
+import { describe, it, expect } from 'vitest';
+
+import type { TreeNode } from '@/types';
+import {
+  findNodeById,
+  findParentById,
+  updateNodeInTree,
+  updateChildrenInTree,
+  collectSiblingInfo,
+} from '@/utils/treeUtils';
+
+/**
+ * Small test fixture tree:
+ *
+ *   root (100%, abs=1000)
+ *   |- child-a (60%, abs=600)
+ *   |  |- grandchild-a1 (70%, abs=420)
+ *   |  +- grandchild-a2 (30%, abs=180, locked)
+ *   +- child-b (40%, abs=400)
+ */
+function createTestTree(): TreeNode {
+  return {
+    id: 'root',
+    label: 'Root',
+    percentage: 100,
+    defaultPercentage: 100,
+    absoluteValue: 1000,
+    genderSplit: { male: 50, female: 50 },
+    isLocked: false,
+    children: [
+      {
+        id: 'child-a',
+        label: 'Child A',
+        percentage: 60,
+        defaultPercentage: 60,
+        absoluteValue: 600,
+        genderSplit: { male: 50, female: 50 },
+        isLocked: false,
+        children: [
+          {
+            id: 'grandchild-a1',
+            label: 'Grandchild A1',
+            percentage: 70,
+            defaultPercentage: 70,
+            absoluteValue: 420,
+            genderSplit: { male: 50, female: 50 },
+            isLocked: false,
+            children: [],
+          },
+          {
+            id: 'grandchild-a2',
+            label: 'Grandchild A2',
+            percentage: 30,
+            defaultPercentage: 30,
+            absoluteValue: 180,
+            genderSplit: { male: 50, female: 50 },
+            isLocked: true,
+            children: [],
+          },
+        ],
+      },
+      {
+        id: 'child-b',
+        label: 'Child B',
+        percentage: 40,
+        defaultPercentage: 40,
+        absoluteValue: 400,
+        genderSplit: { male: 50, female: 50 },
+        isLocked: false,
+        children: [],
+      },
+    ],
+  };
+}
+
+describe('findNodeById', () => {
+  it('finds the root node', () => {
+    const tree = createTestTree();
+    const result = findNodeById(tree, 'root');
+
+    expect(result).toBeDefined();
+    expect(result!.id).toBe('root');
+  });
+
+  it('finds a leaf node', () => {
+    const tree = createTestTree();
+    const result = findNodeById(tree, 'grandchild-a1');
+
+    expect(result).toBeDefined();
+    expect(result!.id).toBe('grandchild-a1');
+    expect(result!.label).toBe('Grandchild A1');
+  });
+
+  it('returns undefined for a missing ID', () => {
+    const tree = createTestTree();
+    const result = findNodeById(tree, 'nonexistent');
+
+    expect(result).toBeUndefined();
+  });
+});
+
+describe('findParentById', () => {
+  it('finds the parent of a known child', () => {
+    const tree = createTestTree();
+    const parent = findParentById(tree, 'child-a');
+
+    expect(parent).toBeDefined();
+    expect(parent!.id).toBe('root');
+  });
+
+  it('finds the parent of a grandchild', () => {
+    const tree = createTestTree();
+    const parent = findParentById(tree, 'grandchild-a1');
+
+    expect(parent).toBeDefined();
+    expect(parent!.id).toBe('child-a');
+  });
+
+  it('returns undefined for the root node (root has no parent)', () => {
+    const tree = createTestTree();
+    const parent = findParentById(tree, 'root');
+
+    expect(parent).toBeUndefined();
+  });
+
+  it('returns undefined for a missing ID', () => {
+    const tree = createTestTree();
+    const parent = findParentById(tree, 'nonexistent');
+
+    expect(parent).toBeUndefined();
+  });
+});
+
+describe('updateNodeInTree', () => {
+  it('updates a leaf node percentage', () => {
+    const tree = createTestTree();
+    const updated = updateNodeInTree(tree, 'grandchild-a1', (node) => ({
+      ...node,
+      percentage: 80,
+    }));
+
+    const target = findNodeById(updated, 'grandchild-a1');
+    expect(target!.percentage).toBe(80);
+  });
+
+  it('preserves immutability (original tree is unchanged)', () => {
+    const tree = createTestTree();
+    const updated = updateNodeInTree(tree, 'grandchild-a1', (node) => ({
+      ...node,
+      percentage: 80,
+    }));
+
+    // Original unchanged
+    const originalTarget = findNodeById(tree, 'grandchild-a1');
+    expect(originalTarget!.percentage).toBe(70);
+
+    // Updated tree has new value
+    const updatedTarget = findNodeById(updated, 'grandchild-a1');
+    expect(updatedTarget!.percentage).toBe(80);
+
+    // Root references are different
+    expect(updated).not.toBe(tree);
+  });
+
+  it('returns a tree with same structure when ID is not found', () => {
+    const tree = createTestTree();
+    const updated = updateNodeInTree(tree, 'nonexistent', (node) => ({
+      ...node,
+      percentage: 99,
+    }));
+
+    // Structure is the same but objects are cloned
+    expect(findNodeById(updated, 'root')!.percentage).toBe(100);
+    expect(findNodeById(updated, 'child-a')!.percentage).toBe(60);
+  });
+});
+
+describe('updateChildrenInTree', () => {
+  it('updates children of a specified parent', () => {
+    const tree = createTestTree();
+    const updated = updateChildrenInTree(tree, 'child-a', (children) =>
+      children.map((c) => ({ ...c, percentage: 50 })),
+    );
+
+    const parent = findNodeById(updated, 'child-a');
+    expect(parent!.children[0].percentage).toBe(50);
+    expect(parent!.children[1].percentage).toBe(50);
+  });
+
+  it('preserves immutability', () => {
+    const tree = createTestTree();
+    const updated = updateChildrenInTree(tree, 'child-a', (children) =>
+      children.map((c) => ({ ...c, percentage: 50 })),
+    );
+
+    // Original unchanged
+    const originalParent = findNodeById(tree, 'child-a');
+    expect(originalParent!.children[0].percentage).toBe(70);
+    expect(originalParent!.children[1].percentage).toBe(30);
+
+    // New tree is different reference
+    expect(updated).not.toBe(tree);
+  });
+});
+
+describe('collectSiblingInfo', () => {
+  it('extracts correct info from children array', () => {
+    const tree = createTestTree();
+    const info = collectSiblingInfo(tree);
+
+    expect(info).toHaveLength(2);
+    expect(info[0]).toEqual({ id: 'child-a', percentage: 60, isLocked: false });
+    expect(info[1]).toEqual({ id: 'child-b', percentage: 40, isLocked: false });
+  });
+
+  it('includes isLocked status', () => {
+    const tree = createTestTree();
+    const childA = findNodeById(tree, 'child-a')!;
+    const info = collectSiblingInfo(childA);
+
+    expect(info).toHaveLength(2);
+    expect(info[0]).toEqual({
+      id: 'grandchild-a1',
+      percentage: 70,
+      isLocked: false,
+    });
+    expect(info[1]).toEqual({
+      id: 'grandchild-a2',
+      percentage: 30,
+      isLocked: true,
+    });
+  });
+
+  it('returns empty array for leaf node', () => {
+    const tree = createTestTree();
+    const leaf = findNodeById(tree, 'child-b')!;
+    const info = collectSiblingInfo(leaf);
+
+    expect(info).toEqual([]);
+  });
+});
