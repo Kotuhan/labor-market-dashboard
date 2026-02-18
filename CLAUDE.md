@@ -34,7 +34,7 @@ apps/
   labor-market-dashboard/    # Main React SPA (Vite + React + TS)
     src/
       __tests__/             # Tests mirroring src/ structure
-      components/            # Slider, PieChartPanel, ChartTooltip, ChartLegend, TreePanel, TreeRow, ModeToggle, SummaryBar, ResetButton
+      components/            # DashboardHeader, GenderSection, ModeToggle, ResetButton, Slider, PieChartPanel, ChartTooltip, ChartLegend, TreePanel, TreeRow
       data/                  # defaultTree.ts, dataHelpers.ts, chartColors.ts — Ukraine labor market defaults + chart colors
       hooks/                 # useTreeState (useReducer-based state management)
       types/                 # TreeNode, GenderSplit, BalanceMode, DashboardState, TreeAction
@@ -132,7 +132,7 @@ All apps extend shared configs from `packages/config/` (see [packages/config/CLA
 - **Labels**: Ukrainian language for all node labels
 - **Gender split**: Derived from weighted industry data (52.66/47.34), NOT the PRD's rounded 52/48
 - **Numeric formatting in code**: Underscore separators for large numbers (`13_500_000`, `1_194_329`)
-- **Display formatting**: Ukrainian "тис." abbreviation for values >= 1000 (e.g., "13 500 тис."); percentages always 1 decimal place (e.g., "18.5%"). Use `formatAbsoluteValue()` and `formatPercentage()` from `src/utils/format.ts`
+- **Display formatting**: Ukrainian "тис." abbreviation for values >= 1000 (e.g., "13 500 тис."); percentages always 1 decimal place (e.g., "18.5%"); full numbers with space-separated thousands (e.g., "13 500 000") for population input. Use `formatAbsoluteValue()`, `formatPercentage()`, and `formatPopulation()` from `src/utils/format.ts`
 
 ### State Management Pattern
 
@@ -145,12 +145,15 @@ All apps extend shared configs from `packages/config/` (see [packages/config/CLA
 
 ### Component Pattern
 
+- **Composition root**: App.tsx wires `useTreeState()` and distributes state/dispatch to children. No business logic, no tests of its own.
 - **Controlled components**: No internal value state -- receive percentage/values as props, dispatch actions upward
-- **Minimal local state**: Only for input fields needing partial-typing support (string state synced from props via `useEffect`)
+- **Minimal local state**: Only for input fields needing partial-typing support (string state synced from props via `useEffect`). Pattern used by Slider and DashboardHeader (population input).
 - **Read-only visualization**: Chart components receive `TreeNode[]` as `nodes` prop, render only, no dispatch. Use `React.memo` for performance.
-- **Container + recursive child**: TreePanel (container, manages UI-only expand/collapse state via `useState<Set<string>>`) + TreeRow (recursive, `React.memo`). See app CLAUDE.md for full details.
-- **Barrel exports**: `components/index.ts` exports component + `export type` for props interface
+- **Section container**: GenderSection pairs TreePanel + PieChartPanel per gender. TreePanel uses single-gender API (`genderNode` prop, not full tree root).
+- **Container + recursive child**: TreePanel (container, manages UI-only expand/collapse state via `useState<Set<string>>`) + TreeRow (recursive, `React.memo`, renders mini pie charts for expanded nodes).
+- **Barrel exports**: `components/index.ts` exports component + `export type` for props interface (10 components)
 - **Touch targets**: All interactive elements >= 44x44px (WCAG 2.5.5)
+- **Heading hierarchy**: `<h1>` in DashboardHeader (title) -> `<h2>` in TreePanel (gender sections). Required by WCAG 1.3.1.
 - See [apps/labor-market-dashboard/CLAUDE.md](apps/labor-market-dashboard/CLAUDE.md) for full details
 
 ### Chart Color Conventions
@@ -168,7 +171,7 @@ All apps extend shared configs from `packages/config/` (see [packages/config/CLA
 
 ### Type Definition Conventions
 
-- Named exports only, no default exports
+- Named exports only, no default exports (no exceptions -- App.tsx also uses named export)
 - Barrel re-exports use `export type { ... }` syntax for type-only modules
 - JSDoc on all interfaces and type aliases, with field-level docs for non-obvious fields
 - String literal union types preferred over enums for small fixed sets

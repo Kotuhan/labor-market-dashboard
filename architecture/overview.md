@@ -96,7 +96,7 @@ Centralized TypeScript, ESLint, and Prettier configs shared across the monorepo.
 
 | Module | Location | Responsibility | Since |
 |--------|----------|----------------|-------|
-| App Shell | `apps/labor-market-dashboard/src/App.tsx` | Root component, wires useTreeState to TreePanel (named export) | task-001, task-007 |
+| App Shell | `apps/labor-market-dashboard/src/App.tsx` | Composition root: wires useTreeState to DashboardHeader + 2 GenderSections. No business logic (named export) | task-001, task-008 |
 | Entry Point | `apps/labor-market-dashboard/src/main.tsx` | React 19 StrictMode bootstrap (named import of App) | task-001, task-007 |
 | Tailwind Entry | `apps/labor-market-dashboard/src/index.css` | `@import "tailwindcss"` (v4 CSS-first) | task-001 |
 | Vite Config | `apps/labor-market-dashboard/vite.config.ts` | React + Tailwind plugins, `@` alias | task-001 |
@@ -121,10 +121,10 @@ Centralized TypeScript, ESLint, and Prettier configs shared across the monorepo.
 | Calculations Tests | `apps/labor-market-dashboard/src/__tests__/utils/calculations.test.ts` | auto-balance, normalize, recalc, deviation, lock guard (28 tests) | task-004 |
 | useTreeState Tests | `apps/labor-market-dashboard/src/__tests__/hooks/useTreeState.test.ts` | All 5 actions, cascading recalc, performance (19 tests) | task-004 |
 | Slider | `apps/labor-market-dashboard/src/components/Slider.tsx` | Controlled range input + numeric input + lock toggle (first UI component) | task-005 |
-| Components Barrel | `apps/labor-market-dashboard/src/components/index.ts` | Barrel re-export: value + type exports for components | task-005 |
-| Format Utility | `apps/labor-market-dashboard/src/utils/format.ts` | `formatAbsoluteValue()` (Ukrainian "тис." abbreviation), `formatPercentage()` (1 decimal), manual `formatWithSpaces()` | task-005 |
+| Components Barrel | `apps/labor-market-dashboard/src/components/index.ts` | Barrel re-export: 10 components, value + type exports | task-005, task-008 |
+| Format Utility | `apps/labor-market-dashboard/src/utils/format.ts` | `formatAbsoluteValue()` (Ukrainian "тис." abbreviation), `formatPercentage()` (1 decimal), `formatPopulation()` (full number with space-separated thousands), manual `formatWithSpaces()` | task-005, task-008 |
 | Test Setup | `apps/labor-market-dashboard/src/__tests__/setup.ts` | Global `@testing-library/jest-dom/vitest` matcher registration | task-005 |
-| Format Tests | `apps/labor-market-dashboard/src/__tests__/utils/format.test.ts` | 13 tests: formatAbsoluteValue + formatPercentage edge cases | task-005 |
+| Format Tests | `apps/labor-market-dashboard/src/__tests__/utils/format.test.ts` | 19 tests: formatAbsoluteValue + formatPercentage + formatPopulation edge cases | task-005, task-008 |
 | Slider Tests | `apps/labor-market-dashboard/src/__tests__/components/Slider.test.tsx` | 22 tests: rendering, range input, numeric input, lock toggle, a11y, prop sync | task-005 |
 | Chart Colors | `apps/labor-market-dashboard/src/data/chartColors.ts` | KVED-to-hex color palette (16 industries), gender colors, ghost/overflow/default colors | task-006 |
 | Chart Data Utils | `apps/labor-market-dashboard/src/utils/chartDataUtils.ts` | `toChartData()`, `getNodeColor()`, `generateSubcategoryColors()`, PieDataEntry interface | task-006 |
@@ -136,18 +136,22 @@ Centralized TypeScript, ESLint, and Prettier configs shared across the monorepo.
 | ChartTooltip Tests | `apps/labor-market-dashboard/src/__tests__/components/ChartTooltip.test.tsx` | 5 tests: rendering, null states, ghost slice handling | task-006 |
 | ChartLegend Tests | `apps/labor-market-dashboard/src/__tests__/components/ChartLegend.test.tsx` | 5 tests: list items, labels, semantic markup, maxHeight | task-006 |
 | PieChartPanel Tests | `apps/labor-market-dashboard/src/__tests__/components/PieChartPanel.test.tsx` | 11 tests: accessibility, legend, free mode, size variants | task-006 |
-| TreePanel | `apps/labor-market-dashboard/src/components/TreePanel.tsx` | Tree container: expand/collapse state (local useState), root header, gender sections, delegates to TreeRow | task-007 |
-| TreeRow | `apps/labor-market-dashboard/src/components/TreeRow.tsx` | Recursive tree row: React.memo, chevron toggle, indentation, embedded Slider, canToggleLock | task-007 |
-| TreeRow Tests | `apps/labor-market-dashboard/src/__tests__/components/TreeRow.test.tsx` | 21 tests: rendering, chevron, expand/collapse, indentation, Slider integration, a11y, canLock | task-007 |
-| TreePanel Tests | `apps/labor-market-dashboard/src/__tests__/components/TreePanel.test.tsx` | 14 tests: root display, gender sections, industry nodes, expand/collapse integration, a11y | task-007 |
+| ModeToggle | `apps/labor-market-dashboard/src/components/ModeToggle.tsx` | Auto/free balance mode toggle switch (role="switch", aria-checked, 59 lines) | task-008 |
+| ResetButton | `apps/labor-market-dashboard/src/components/ResetButton.tsx` | Reset button with browser confirm() guard (51 lines) | task-008 |
+| DashboardHeader | `apps/labor-market-dashboard/src/components/DashboardHeader.tsx` | Sticky header bar: h1 title, controlled population input, ModeToggle + ResetButton composition (109 lines) | task-008 |
+| GenderSection | `apps/labor-market-dashboard/src/components/GenderSection.tsx` | Container pairing TreePanel + PieChartPanel per gender (44 lines) | task-008 |
+| ModeToggle Tests | `apps/labor-market-dashboard/src/__tests__/components/ModeToggle.test.tsx` | 13 tests: mode label, dispatch SET_BALANCE_MODE, role="switch", aria-checked | task-008 |
+| ResetButton Tests | `apps/labor-market-dashboard/src/__tests__/components/ResetButton.test.tsx` | 9 tests: confirm dialog, dispatch on OK, no-op on cancel, a11y, keyboard | task-008 |
+| DashboardHeader Tests | `apps/labor-market-dashboard/src/__tests__/components/DashboardHeader.test.tsx` | 16 tests: title, population input dispatch/revert, ModeToggle/ResetButton composition | task-008 |
+| GenderSection Tests | `apps/labor-market-dashboard/src/__tests__/components/GenderSection.test.tsx` | 7 tests: TreePanel + PieChartPanel pairing, aria-labels, industry data | task-008 |
+| TreePanel | `apps/labor-market-dashboard/src/components/TreePanel.tsx` | Single-gender tree container: expand/collapse state (local useState), gender heading, industry rows, deviation warnings (124 lines) | task-007, task-008 |
+| TreeRow | `apps/labor-market-dashboard/src/components/TreeRow.tsx` | Recursive tree row: React.memo, chevron toggle, indentation, embedded Slider, canToggleLock, deviation warnings, mini subcategory pie charts | task-007, task-008 |
+| TreeRow Tests | `apps/labor-market-dashboard/src/__tests__/components/TreeRow.test.tsx` | 32 tests: rendering, chevron, expand/collapse, indentation, Slider, a11y, canLock, deviation warnings, mini pie charts | task-007, task-008 |
+| TreePanel Tests | `apps/labor-market-dashboard/src/__tests__/components/TreePanel.test.tsx` | 16 tests: single-gender API, industry nodes, expand/collapse, deviation warnings, a11y | task-007, task-008 |
 
 ### Planned (Not Yet Implemented)
 
-| Module | Location | Responsibility |
-|--------|----------|----------------|
-| ModeToggle | `src/components/ModeToggle/` | Auto-balance / Free mode switch |
-| SummaryBar | `src/components/SummaryBar/` | Total population input + statistics |
-| ResetButton | `src/components/ResetButton/` | Reset to defaults + confirmation modal |
+All components from the initial roadmap are now implemented. Remaining work is polish, animations, and deployment (per PRD milestones M4+).
 
 ## Security Architecture
 
@@ -262,17 +266,62 @@ Visualization components (PieChartPanel, ChartTooltip, ChartLegend) follow a dis
 - **Reuse formatting utilities**: Custom tooltip/legend components reuse `formatAbsoluteValue`/`formatPercentage` from `utils/format.ts` for Ukrainian number formatting.
 - **Accessibility**: `<figure role="img" aria-label={...}>` wrapper + `sr-only` data `<table>` for screen readers. Color swatches use `aria-hidden="true"`.
 
+### Composition Root Pattern
+
+App.tsx is a pure **composition root** that wires `useTreeState()` and distributes state/dispatch to child components:
+
+- No business logic, no conditional rendering, no local state
+- `DashboardHeader` (sticky) at top with population input, mode toggle, reset button
+- `<main>` with responsive `grid grid-cols-1 lg:grid-cols-2 gap-6` containing 2 `GenderSection` instances
+- Gender nodes accessed via `state.tree.children[0]` (male) and `state.tree.children[1]` (female)
+- No direct tests -- all behavior verified via child component test suites
+
+### Dashboard Header Pattern
+
+DashboardHeader composes the sticky top bar:
+
+- **`<h1>` for title**: Required for WCAG 1.3.1 heading hierarchy (gender section `<h2>` elements need a parent `<h1>`)
+- **Controlled population input**: Same pattern as Slider -- local `inputValue` string state, `isEditing` guard, `useEffect` prop sync, commit on blur/Enter
+- **`formatPopulation()`**: Full number with space-separated thousands (not abbreviated) for the input field
+- **Sticky positioning**: `sticky top-0 z-10` with white background and bottom border
+
+### GenderSection Pattern
+
+GenderSection is a thin container (44 lines) pairing a gender's TreePanel + PieChartPanel:
+
+- Receives `genderNode` (single gender TreeNode), passes to both children
+- PieChartPanel receives `nodes={genderNode.children}` with `INDUSTRY_COLORS` color map
+- Layout: vertical flex (`flex-col gap-4`)
+
 ### Container + Recursive Component Pattern
 
 TreePanel + TreeRow establish the **container + recursive child** pattern for hierarchical tree navigation:
 
-- **TreePanel (container)**: Manages expand/collapse state via `useState<Set<string>>` -- UI-only state, NOT in the reducer (per ADR-0004). Renders root header (`<h1>`), gender sections as non-collapsible `<section aria-label>` headers (`<h2>`), and delegates industry rows to TreeRow.
-- **TreeRow (recursive, `React.memo`)**: Renders a single node with chevron toggle + embedded Slider. Recursively renders children when expanded. `memo(function TreeRow(...))` follows the PieChartPanel named function pattern.
+- **TreePanel (single-gender container)**: Receives `genderNode: TreeNode` (one gender), NOT the full tree root. Manages expand/collapse state via `useState<Set<string>>` -- UI-only state, NOT in the reducer (per ADR-0004). Renders gender heading (`<h2>`), percentage + absolute value summary, optional deviation warning (free mode), and delegates industry rows to TreeRow.
+- **TreeRow (recursive, `React.memo`)**: Renders a single node with chevron toggle + embedded Slider. Recursively renders children when expanded. Also renders mini subcategory pie charts and deviation warnings for expanded nodes. `memo(function TreeRow(...))` follows the PieChartPanel named function pattern.
 - **`useCallback` on toggle handler**: Required because TreeRow is memoized -- `handleToggleExpand` uses `setExpandedIds(prev => ...)` functional form to avoid stale closures.
-- **Expand initialization**: `collectExpandableIds()` walks the tree once on mount (lazy `useState` initializer). All expandable nodes start expanded.
-- **Gender nodes always expanded**: Gender nodes are section headers, never tracked in `expandedIds`, no collapse toggle.
+- **Expand initialization**: `collectExpandableIds()` walks the gender node's children once on mount (lazy `useState` initializer). All expandable nodes start expanded.
+- **Gender nodes are section headers**: Gender nodes are rendered by GenderSection, not TreePanel. TreePanel starts at industry level.
 - **Indentation**: `paddingLeft: ${depth * 24}px` via inline style. Leaf nodes render a spacer `<div>` matching chevron dimensions for alignment.
 - **Accessibility**: `aria-expanded` on chevron buttons, `aria-label` with "Expand/Collapse {label}", `<section aria-label>` for gender regions, `<h1>`/`<h2>` heading hierarchy.
+
+### Deviation Warning Pattern (Free Mode)
+
+When `balanceMode === 'free'`, inline warnings appear when sibling percentages deviate from 100%:
+
+- **Gender-level** (TreePanel): `getSiblingDeviation(genderNode)` checks industry percentages. Warning rendered as `<p role="status">` with amber-600 text.
+- **Subcategory-level** (TreeRow): `getSiblingDeviation(node)` for expanded nodes with children.
+- **Format**: `"Сума: 95.0% (-5.0%)"` or `"Сума: 108.3% (+8.3%)"` using `formatPercentage()`.
+- **Auto mode**: No warnings -- deviation is always 0.
+
+### Mini Subcategory Pie Charts
+
+TreeRow renders a mini `PieChartPanel` for expanded nodes with children:
+
+- **Trigger**: `isExpanded && hasChildren` (currently only IT/KVED J nodes have subcategories)
+- **Size**: `size="mini"` (200px height), `showLegend={false}`
+- **Colors**: `buildSubcategoryColorMap(node)` uses `generateSubcategoryColors()` with opacity-based shades of the parent industry color
+- **Indentation**: `paddingLeft: ${(depth + 1) * 24}px` matches child row indentation
 
 ### Recharts Integration Convention
 

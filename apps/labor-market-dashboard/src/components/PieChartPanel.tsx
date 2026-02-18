@@ -76,8 +76,8 @@ export const PieChartPanel = memo(function PieChartPanel({
 
   return (
     <figure role="img" aria-label={ariaLabel}>
-      <div className="flex flex-col items-center gap-4 md:flex-row md:items-start">
-        <div className="relative" style={{ minHeight: `${config.height}px` }}>
+      <div className="flex flex-col gap-4 md:flex-row md:items-start">
+        <div className="relative min-w-0 flex-1" style={{ minHeight: `${config.height}px` }}>
           <ResponsiveContainer width="100%" height={config.height}>
             <PieChart>
               <Pie

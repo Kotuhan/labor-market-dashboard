@@ -48,3 +48,22 @@ This file tracks all agent runs and workflow transitions for this subtask.
 - **Summary**: App.tsx is a thin composition root (~35 lines) with no business logic or new patterns. CSS Grid layout follows standard Tailwind conventions. Will be documented in parent context-update.
 - **Next stage**: git-commit
 
+---
+
+## 2026-02-17 21:35 - Git Commit
+
+- **Agent**: director (git-commit)
+- **Result**: completed
+- **Commit**: 5fd0dc8
+- **Commit message**: Compose final dashboard layout with header and gender sections (task-008.5)
+- **Next stage**: done
+
+---
+
+## 2026-02-17 21:35 - Subtask Complete
+
+- **Final Status**: DONE
+- **Files Modified**:
+  - apps/labor-market-dashboard/src/App.tsx
+- **Commit**: 5fd0dc8
+

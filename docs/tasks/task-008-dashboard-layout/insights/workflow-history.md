@@ -178,3 +178,59 @@ This file tracks all agent runs and workflow transitions for this task.
 - **Summary**: GenderSection (44 lines, TreePanel + PieChartPanel wrapper). Mini subcategory pie charts in TreeRow for expanded nodes. 13 new tests (286 total). QA approved.
 - **Remaining subtasks**: 1 of 5
 
+---
+
+## 2026-02-17 21:35 - Subtask 8.5 Complete
+
+- **Subtask**: 8.5-layout-composition
+- **Commit**: 5fd0dc8
+- **Summary**: App.tsx rewritten as final composition root (43 lines). DashboardHeader (sticky) + two GenderSection instances in responsive CSS Grid. All 10 barrel exports verified. 286 tests passing. QA approved.
+- **Remaining subtasks**: 0 of 5
+
+---
+
+## 2026-02-17 21:45 - Parent QA
+
+- **Agent**: qa-engineer
+- **Result**: APPROVED
+- **Summary**: Full integrated verification. 22/22 acceptance criteria pass. 9/9 success criteria pass. 2/2 arch-review conditions met. 286 tests across 19 files. Lint clean, build successful. No issues found.
+- **Files created**:
+  - docs/tasks/task-008-dashboard-layout/insights/qa-integrated.md
+- **Next stage**: context-update
+
+---
+
+## 2026-02-17 21:50 - Context Update
+
+- **Agent**: context-updater
+- **Result**: completed
+- **Summary**: Updated apps/labor-market-dashboard/CLAUDE.md (10 edits: new components, single-gender API docs, deviation warnings, mini pie charts, barrel exports, DO NOT rules) and root CLAUDE.md (5 edits: component list, composition root pattern, formatPopulation, removed SummaryBar reference, removed legacy App.tsx exception).
+- **Files modified**:
+  - apps/labor-market-dashboard/CLAUDE.md
+  - CLAUDE.md (root)
+- **Next stage**: arch-update
+
+---
+
+## 2026-02-17 22:00 - Arch Update
+
+- **Agent**: system-architect
+- **Result**: completed
+- **Summary**: No architectural violations. architecture/overview.md updated with 11 edits: 8 new module entries (4 components + 4 tests), 5 new pattern sections, TreePanel/TreeRow entries updated, barrel count updated to 10. No retroactive ADRs created (all decisions were explicit in TL design + arch-review).
+- **Files modified**: architecture/overview.md
+- **ADRs created**: none
+- **Next stage**: po-summary
+
+---
+
+## 2026-02-17 22:05 - PO Summary
+
+- **Agent**: product-owner
+- **Result**: completed
+- **Summary**: Completion summary written to insights/summary.md. Task-008 row appended to docs/README.md Completed Tasks table.
+- **Files created**:
+  - docs/tasks/task-008-dashboard-layout/insights/summary.md
+- **Files modified**:
+  - docs/README.md
+- **Next stage**: git-commit (awaiting user approval)
+
