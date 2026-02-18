@@ -234,3 +234,30 @@ This file tracks all agent runs and workflow transitions for this task.
   - docs/README.md
 - **Next stage**: git-commit (awaiting user approval)
 
+---
+
+## 2026-02-18 00:00 - Git Commit
+
+- **Agent**: director (git-commit)
+- **Result**: completed
+- **Commit**: ea3c454
+- **Commit message**: Build dashboard layout with header, mode controls, and pie charts (task-008)
+- **Next stage**: done
+
+---
+
+## 2026-02-18 00:00 - Task Complete
+
+- **Final Status**: DONE
+- **Total Duration**: ~3 hours (from PO analysis to final commit)
+- **Subtask Commits**:
+  - 03e975d - ModeToggle + ResetButton (task-008.1)
+  - 1cf347e - TreePanel refactor + deviation warnings (task-008.3)
+  - e6e203b - DashboardHeader (task-008.2)
+  - 03a5378 - GenderSection + mini pie charts (task-008.4)
+  - 5fd0dc8 - Layout composition (task-008.5)
+  - ea3c454 - Parent completion + PieChartPanel fix
+- **Files Created**: 8 components/test files, 15+ insight/plan docs
+- **Files Modified**: App.tsx, TreePanel, TreeRow, PieChartPanel, barrel exports, CLAUDE.md files, architecture/overview.md
+- **Tests**: 286 (64 new)
+
