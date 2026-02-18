@@ -28,11 +28,13 @@ export function App() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
           <GenderSection
             genderNode={maleNode}
+            genderSiblings={state.tree.children}
             balanceMode={state.balanceMode}
             dispatch={dispatch}
           />
           <GenderSection
             genderNode={femaleNode}
+            genderSiblings={state.tree.children}
             balanceMode={state.balanceMode}
             dispatch={dispatch}
           />

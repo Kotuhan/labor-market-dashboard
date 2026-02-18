@@ -8,6 +8,8 @@ import { TreePanel } from './TreePanel';
 export interface GenderSectionProps {
   /** Single gender node (male or female) */
   genderNode: TreeNode;
+  /** Root-level gender siblings (for gender ratio slider lock logic) */
+  genderSiblings: readonly TreeNode[];
   /** Current balance mode */
   balanceMode: BalanceMode;
   /** Dispatch function from useTreeState */
@@ -23,6 +25,7 @@ export interface GenderSectionProps {
  */
 export function GenderSection({
   genderNode,
+  genderSiblings,
   balanceMode,
   dispatch,
 }: GenderSectionProps) {
@@ -30,6 +33,7 @@ export function GenderSection({
     <div className="flex flex-col gap-4">
       <TreePanel
         genderNode={genderNode}
+        genderSiblings={genderSiblings}
         balanceMode={balanceMode}
         dispatch={dispatch}
       />

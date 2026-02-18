@@ -1,12 +1,9 @@
 import { memo } from 'react';
 
-import { DEFAULT_NODE_COLOR, INDUSTRY_COLORS } from '@/data/chartColors';
 import type { BalanceMode, TreeAction, TreeNode } from '@/types';
 import { canToggleLock, getSiblingDeviation } from '@/utils/calculations';
-import { generateSubcategoryColors } from '@/utils/chartDataUtils';
 import { formatPercentage } from '@/utils/format';
 
-import { PieChartPanel } from './PieChartPanel';
 import { Slider } from './Slider';
 
 /** Props for the TreeRow component. */
@@ -28,33 +25,11 @@ export interface TreeRowProps {
 }
 
 /**
- * Build a color map for subcategory nodes based on parent's industry color.
- * Uses generateSubcategoryColors to create opacity-based shades.
- */
-function buildSubcategoryColorMap(
-  node: TreeNode,
-): Record<string, string> {
-  const baseColor =
-    node.kvedCode && node.kvedCode in INDUSTRY_COLORS
-      ? INDUSTRY_COLORS[node.kvedCode]
-      : DEFAULT_NODE_COLOR;
-
-  const colors = generateSubcategoryColors(baseColor, node.children.length);
-  const colorMap: Record<string, string> = {};
-
-  node.children.forEach((child, index) => {
-    colorMap[child.id] = colors[index];
-  });
-
-  return colorMap;
-}
-
-/**
  * Recursive tree row component.
  *
  * Renders a single node with optional expand/collapse chevron, indentation,
- * and an embedded Slider. When expanded, recursively renders child nodes,
- * a mini subcategory pie chart, and (in free mode) a deviation warning.
+ * and an embedded Slider. When expanded, recursively renders child nodes
+ * and (in free mode) a deviation warning.
  *
  * Wrapped in React.memo to prevent re-renders during sibling slider interactions.
  */
@@ -167,20 +142,6 @@ export const TreeRow = memo(function TreeRow({
         >
           Сума: {formatPercentage(100 + deviation)} ({deviation > 0 ? '+' : ''}{formatPercentage(deviation)})
         </p>
-      )}
-
-      {/* Mini subcategory pie chart (expanded nodes with children) */}
-      {isExpanded && hasChildren && (
-        <div style={{ paddingLeft: `${(depth + 1) * 24}px` }}>
-          <PieChartPanel
-            nodes={node.children}
-            colorMap={buildSubcategoryColorMap(node)}
-            ariaLabel={`Розподіл підкатегорій -- ${node.label}`}
-            size="mini"
-            balanceMode={balanceMode}
-            showLegend={false}
-          />
-        </div>
       )}
     </div>
   );

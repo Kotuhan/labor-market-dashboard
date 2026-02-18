@@ -1,15 +1,18 @@
 import { useCallback, useState } from 'react';
 
 import type { BalanceMode, TreeAction, TreeNode } from '@/types';
-import { getSiblingDeviation } from '@/utils/calculations';
-import { formatAbsoluteValue, formatPercentage } from '@/utils/format';
+import { canToggleLock, getSiblingDeviation } from '@/utils/calculations';
+import { formatPercentage } from '@/utils/format';
 
+import { Slider } from './Slider';
 import { TreeRow } from './TreeRow';
 
 /** Props for the TreePanel component. */
 export interface TreePanelProps {
   /** Single gender node to render (male or female) */
   genderNode: TreeNode;
+  /** Root-level gender siblings (for gender ratio slider lock logic) */
+  genderSiblings: readonly TreeNode[];
   /** Current balance mode */
   balanceMode: BalanceMode;
   /** Dispatch function from useTreeState */
@@ -61,7 +64,7 @@ function formatDeviation(deviation: number): string {
  * optional deviation warning (free mode), and TreeRow instances
  * for each industry node.
  */
-export function TreePanel({ genderNode, balanceMode, dispatch }: TreePanelProps) {
+export function TreePanel({ genderNode, genderSiblings, balanceMode, dispatch }: TreePanelProps) {
   const [expandedIds, setExpandedIds] = useState<Set<string>>(
     () => new Set(collectExpandableIds(genderNode)),
   );
@@ -79,22 +82,26 @@ export function TreePanel({ genderNode, balanceMode, dispatch }: TreePanelProps)
   }, []);
 
   const deviation = balanceMode === 'free' ? getSiblingDeviation(genderNode) : 0;
+  const canLockGender = canToggleLock(genderNode.id, genderSiblings);
 
   return (
     <section aria-label={genderNode.label}>
-      {/* Gender section header */}
-      <div className="mb-2 flex items-baseline justify-between">
-        <h2 className="text-lg font-semibold text-slate-800">
-          {genderNode.label}
-        </h2>
-        <div className="flex items-baseline gap-2">
-          <span className="text-sm font-semibold text-slate-700">
-            {formatPercentage(genderNode.percentage)}
-          </span>
-          <span className="text-xs text-slate-500">
-            {formatAbsoluteValue(genderNode.absoluteValue)}
-          </span>
-        </div>
+      <h2 className="mb-1 text-lg font-semibold text-slate-800">
+        {genderNode.label}
+      </h2>
+
+      {/* Gender ratio slider */}
+      <div className="mb-2">
+        <Slider
+          nodeId={genderNode.id}
+          label={genderNode.label}
+          percentage={genderNode.percentage}
+          absoluteValue={genderNode.absoluteValue}
+          isLocked={genderNode.isLocked}
+          canLock={canLockGender}
+          balanceMode={balanceMode}
+          dispatch={dispatch}
+        />
       </div>
 
       {/* Deviation warning (free mode only) */}

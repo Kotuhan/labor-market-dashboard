@@ -1,52 +1,10 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { TreeRow } from '@/components/TreeRow';
 import type { TreeRowProps } from '@/components/TreeRow';
 import type { TreeAction, TreeNode } from '@/types';
-
-/**
- * Mock ResizeObserver for jsdom (required because TreeRow now renders
- * PieChartPanel which uses Recharts ResponsiveContainer).
- */
-beforeAll(() => {
-  global.ResizeObserver = class ResizeObserver {
-    private callback: ResizeObserverCallback;
-
-    constructor(callback: ResizeObserverCallback) {
-      this.callback = callback;
-    }
-
-    observe(target: Element) {
-      this.callback(
-        [
-          {
-            target,
-            contentRect: {
-              width: 400,
-              height: 300,
-              top: 0,
-              left: 0,
-              bottom: 300,
-              right: 400,
-              x: 0,
-              y: 0,
-              toJSON: () => ({}),
-            },
-            borderBoxSize: [],
-            contentBoxSize: [],
-            devicePixelContentBoxSize: [],
-          },
-        ],
-        this,
-      );
-    }
-
-    unobserve() {}
-    disconnect() {}
-  };
-});
 
 /** Create a minimal TreeNode for testing. */
 function makeNode(overrides?: Partial<TreeNode>): TreeNode {
@@ -222,9 +180,8 @@ describe('TreeRow expand/collapse', () => {
       />,
     );
 
-    // Use getAllByText because mini pie chart sr-only table duplicates labels
-    expect(screen.getAllByText('Розробка ПЗ').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('QA / Тестування').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Розробка ПЗ')).toBeInTheDocument();
+    expect(screen.getByText('QA / Тестування')).toBeInTheDocument();
   });
 
   it('does not render children when collapsed', () => {
@@ -513,115 +470,3 @@ describe('TreeRow deviation warnings', () => {
   });
 });
 
-// -------------------------------------------------------
-// Mini subcategory pie chart tests
-// -------------------------------------------------------
-describe('TreeRow mini subcategory pie chart', () => {
-  it('renders mini PieChartPanel when node is expanded and has children', () => {
-    const node = makeNodeWithChildren();
-    render(
-      <TreeRow
-        {...makeProps({
-          node,
-          siblings: [node],
-          expandedIds: new Set(['test-j']),
-        })}
-      />,
-    );
-
-    expect(
-      screen.getByRole('img', {
-        name: 'Розподіл підкатегорій -- IT та телеком',
-      }),
-    ).toBeInTheDocument();
-  });
-
-  it('does not render mini chart when node is collapsed', () => {
-    const node = makeNodeWithChildren();
-    render(
-      <TreeRow
-        {...makeProps({
-          node,
-          siblings: [node],
-          expandedIds: new Set(), // collapsed
-        })}
-      />,
-    );
-
-    expect(
-      screen.queryByRole('img', {
-        name: /розподіл підкатегорій/i,
-      }),
-    ).not.toBeInTheDocument();
-  });
-
-  it('does not render mini chart on leaf nodes', () => {
-    render(<TreeRow {...makeProps()} />);
-
-    expect(
-      screen.queryByRole('img', {
-        name: /розподіл підкатегорій/i,
-      }),
-    ).not.toBeInTheDocument();
-  });
-
-  it('mini chart has correct aria-label including node label', () => {
-    const node = makeNodeWithChildren();
-    render(
-      <TreeRow
-        {...makeProps({
-          node,
-          siblings: [node],
-          expandedIds: new Set(['test-j']),
-        })}
-      />,
-    );
-
-    const miniChart = screen.getByRole('img', {
-      name: 'Розподіл підкатегорій -- IT та телеком',
-    });
-    expect(miniChart).toBeInTheDocument();
-  });
-
-  it('mini chart renders with mini size (200px height)', () => {
-    const node = makeNodeWithChildren();
-    const { container } = render(
-      <TreeRow
-        {...makeProps({
-          node,
-          siblings: [node],
-          expandedIds: new Set(['test-j']),
-        })}
-      />,
-    );
-
-    // PieChartPanel with size="mini" renders a div with minHeight: 200px
-    const miniContainer = container.querySelector(
-      '[style*="min-height: 200px"]',
-    );
-    expect(miniContainer).toBeInTheDocument();
-  });
-
-  it('mini chart sr-only table has rows matching subcategory count', () => {
-    const node = makeNodeWithChildren(); // 2 subcategories
-    render(
-      <TreeRow
-        {...makeProps({
-          node,
-          siblings: [node],
-          expandedIds: new Set(['test-j']),
-        })}
-      />,
-    );
-
-    // The mini chart's sr-only table should have 2 data rows + 1 header = 3
-    const figure = screen.getByRole('img', {
-      name: 'Розподіл підкатегорій -- IT та телеком',
-    });
-    const table = figure.querySelector('table');
-    expect(table).toBeInTheDocument();
-    const rows = table?.querySelectorAll('tr');
-    // 1 header + 2 data rows
-    expect(rows).toHaveLength(3);
-  });
-});

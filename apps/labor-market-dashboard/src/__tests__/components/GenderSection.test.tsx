@@ -105,12 +105,28 @@ function makeTestGenderNode(overrides?: Partial<TreeNode>): TreeNode {
   };
 }
 
+/** Create a female sibling for gender ratio slider. */
+function makeFemaleSibling(): TreeNode {
+  return {
+    id: 'gender-female',
+    label: 'Жінки',
+    percentage: 40,
+    defaultPercentage: 40,
+    absoluteValue: 4_000_000,
+    genderSplit: { male: 0, female: 100 },
+    isLocked: false,
+    children: [],
+  };
+}
+
 /** Create default props for GenderSection. */
 function makeProps(
   overrides?: Partial<GenderSectionProps>,
 ): GenderSectionProps {
+  const genderNode = overrides?.genderNode ?? makeTestGenderNode();
   return {
-    genderNode: makeTestGenderNode(),
+    genderNode,
+    genderSiblings: [genderNode, makeFemaleSibling()],
     balanceMode: 'auto',
     dispatch: vi.fn(),
     ...overrides,

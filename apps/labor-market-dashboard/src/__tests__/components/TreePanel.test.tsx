@@ -1,52 +1,10 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { TreePanel } from '@/components/TreePanel';
 import type { TreePanelProps } from '@/components/TreePanel';
 import type { TreeNode } from '@/types';
-
-/**
- * Mock ResizeObserver for jsdom (required because TreeRow now renders
- * PieChartPanel which uses Recharts ResponsiveContainer).
- */
-beforeAll(() => {
-  global.ResizeObserver = class ResizeObserver {
-    private callback: ResizeObserverCallback;
-
-    constructor(callback: ResizeObserverCallback) {
-      this.callback = callback;
-    }
-
-    observe(target: Element) {
-      this.callback(
-        [
-          {
-            target,
-            contentRect: {
-              width: 400,
-              height: 300,
-              top: 0,
-              left: 0,
-              bottom: 300,
-              right: 400,
-              x: 0,
-              y: 0,
-              toJSON: () => ({}),
-            },
-            borderBoxSize: [],
-            contentBoxSize: [],
-            devicePixelContentBoxSize: [],
-          },
-        ],
-        this,
-      );
-    }
-
-    unobserve() {}
-    disconnect() {}
-  };
-});
 
 /**
  * Create a minimal test gender node for TreePanel tests.
@@ -116,10 +74,26 @@ function makeTestGenderNode(overrides?: Partial<TreeNode>): TreeNode {
   };
 }
 
+/** Create a female sibling for gender ratio slider. */
+function makeFemaleSibling(): TreeNode {
+  return {
+    id: 'gender-female',
+    label: 'Жінки',
+    percentage: 40,
+    defaultPercentage: 40,
+    absoluteValue: 4_000_000,
+    genderSplit: { male: 0, female: 100 },
+    isLocked: false,
+    children: [],
+  };
+}
+
 /** Create default props for TreePanel. */
 function makeProps(overrides?: Partial<TreePanelProps>): TreePanelProps {
+  const genderNode = overrides?.genderNode ?? makeTestGenderNode();
   return {
-    genderNode: makeTestGenderNode(),
+    genderNode,
+    genderSiblings: [genderNode, makeFemaleSibling()],
     balanceMode: 'auto',
     dispatch: vi.fn(),
     ...overrides,
@@ -177,9 +151,8 @@ describe('TreePanel industry nodes', () => {
   it('shows all industry nodes on initial render', () => {
     render(<TreePanel {...makeProps()} />);
 
-    // Use getAllByText because mini pie chart sr-only tables duplicate labels
-    expect(screen.getAllByText('Торгівля').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('IT та телеком').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Торгівля')).toBeInTheDocument();
+    expect(screen.getByText('IT та телеком')).toBeInTheDocument();
   });
 
   it('does not show chevron on leaf industry nodes', () => {
@@ -206,9 +179,8 @@ describe('TreePanel expand/collapse', () => {
   it('shows subcategories on initial render (IT starts expanded)', () => {
     render(<TreePanel {...makeProps()} />);
 
-    // Use getAllByText because mini pie chart sr-only tables duplicate labels
-    expect(screen.getAllByText('Розробка ПЗ').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('QA / Тестування').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Розробка ПЗ')).toBeInTheDocument();
+    expect(screen.getByText('QA / Тестування')).toBeInTheDocument();
   });
 
   it('hides subcategories when IT is collapsed', async () => {
@@ -240,9 +212,8 @@ describe('TreePanel expand/collapse', () => {
     });
     await user.click(expandBtn);
 
-    // Use getAllByText because mini pie chart sr-only tables duplicate labels
-    expect(screen.getAllByText('Розробка ПЗ').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('QA / Тестування').length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText('Розробка ПЗ')).toBeInTheDocument();
+    expect(screen.getByText('QA / Тестування')).toBeInTheDocument();
   });
 });
 
