@@ -35,7 +35,7 @@ apps/
   labor-market-dashboard/    # Main React SPA (Vite + React + TS)
     src/
       __tests__/             # Tests mirroring src/ structure
-      components/            # DashboardHeader, GenderSection, ModeToggle, ResetButton, Slider, PieChartPanel, GenderBarChart, BarChartTooltip, ChartTooltip, ChartLegend, TreePanel, TreeRow
+      components/            # DashboardPage, DashboardHeader, GenderSection, ModeToggle, ResetButton, Slider, PieChartPanel, GenderBarChart, BarChartTooltip, ChartTooltip, ChartLegend, TreePanel, TreeRow
         config/              # ConfigPage, ConfigGenderSection, ConfigIndustryRow, ConfigSubcategoryRow, AddNodeForm, ConfirmDialog
         layout/              # AppLayout (shell), Sidebar (collapsible nav) -- wouter routing
       data/                  # defaultTree.ts, dataHelpers.ts, chartColors.ts — Ukraine labor market defaults + chart colors

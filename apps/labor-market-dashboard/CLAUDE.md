@@ -64,7 +64,7 @@ apps/labor-market-dashboard/
       index.ts            # Main barrel: 15 dashboard + 6 config + layout re-exports + export type for props interfaces
     types/
       tree.ts             # Core data model: TreeNode, GenderSplit, BalanceMode, DashboardState
-      actions.ts          # TreeAction discriminated union (5 action types for useReducer)
+      actions.ts          # TreeAction discriminated union (9 action types for useReducer)
       index.ts            # Barrel re-export (export type)
     data/
       defaultTree.ts      # Complete TreeNode tree constant (55 nodes, ~600 lines)
@@ -87,14 +87,17 @@ apps/labor-market-dashboard/
       data/
         defaultTree.test.ts  # 26 tests: structure, math, completeness, DashboardState
         dataHelpers.test.ts  # 8 tests: largestRemainder edge cases
-        chartColors.test.ts  # 8 tests: palette completeness, valid hex, no duplicates
+        chartColors.test.ts  # 12 tests: palette completeness, valid hex, no duplicates, dynamic palette
       utils/
-        treeUtils.test.ts    # 15 tests: find, update, immutability, sibling info
+        treeUtils.test.ts    # 29 tests: find, update, immutability, sibling info, add/remove child, generateUniqueId
         calculations.test.ts # 28 tests: auto-balance, normalize, recalc, deviation, lock guard
         format.test.ts       # 19 tests: formatAbsoluteValue + formatPercentage + formatPopulation
         chartDataUtils.test.ts # 21 tests: toChartData, getNodeColor, generateSubcategoryColors, toBarChartData
+        slugify.test.ts      # 10 tests: Ukrainian transliteration, edge cases, empty input
       components/
         DashboardHeader.test.tsx # 16 tests: title, population input dispatch/revert, ModeToggle/ResetButton composition
+        GenderBarChart.test.tsx # 4 tests: industry bars, KVED matching, a11y, sr-only table
+        BarChartTooltip.test.tsx # 4 tests: tooltip rendering, dual gender display
         GenderSection.test.tsx # 7 tests: TreePanel + PieChartPanel pairing, aria-labels, industry data
         ModeToggle.test.tsx    # 13 tests: mode label, dispatch SET_BALANCE_MODE, role="switch", aria-checked
         ResetButton.test.tsx   # 9 tests: confirm dialog, dispatch on OK, no-op on cancel, a11y, keyboard
@@ -102,18 +105,18 @@ apps/labor-market-dashboard/
         PieChartPanel.test.tsx # 11 tests: accessibility, legend, free mode, size variants
         ChartTooltip.test.tsx  # 5 tests: rendering, null states, ghost slice handling
         ChartLegend.test.tsx   # 5 tests: list items, labels, semantic markup, maxHeight
-        TreeRow.test.tsx       # 32 tests: rendering, chevron, expand/collapse, indent, Slider, deviation warnings, mini pie charts
-        TreePanel.test.tsx     # 16 tests: single-gender API, industry nodes, expand/collapse, deviation warnings, a11y
+        TreeRow.test.tsx       # 30 tests: rendering, chevron, expand/collapse, indent, Slider, deviation warnings, mini pie charts
+        TreePanel.test.tsx     # 23 tests: single-gender API, industry nodes, expand/collapse, deviation warnings, a11y, auto-expand custom nodes
         DashboardPage.test.tsx # 7 tests: header, population input, gender sections, pie charts, main area
         config/
-          ConfirmDialog.test.tsx       # 7 tests: open/close, confirm/cancel, Escape, a11y
-          AddNodeForm.test.tsx         # 9 tests: submit dispatch, empty guard, clear on submit
-          ConfigPage.test.tsx          # 6 tests: heading, 2 gender sections, page structure
-          ConfigGenderSection.test.tsx # 14 tests: industry rows, expand, add/remove, dialog flow
+          ConfirmDialog.test.tsx       # 8 tests: open/close, confirm/cancel, Escape, a11y
+          AddNodeForm.test.tsx         # 11 tests: submit dispatch, empty guard, clear on submit, validation
+          ConfigPage.test.tsx          # 4 tests: heading, 2 gender sections, page structure
+          ConfigGenderSection.test.tsx # 13 tests: industry rows, expand, add/remove, dialog flow
         layout/
           Sidebar.test.tsx     # 13 tests: nav landmark, active state, toggle, keyboard nav, a11y
       hooks/
-        useTreeState.test.ts # 19 tests: all 5 actions, cascading recalc, performance
+        useTreeState.test.ts # 38 tests: all 9 actions, cascading recalc, performance, tree mutations
 ```
 
 ## Key Patterns
@@ -577,6 +580,7 @@ src/utils/treeUtils.ts         -->  src/__tests__/utils/treeUtils.test.ts
 src/utils/calculations.ts      -->  src/__tests__/utils/calculations.test.ts
 src/utils/format.ts               -->  src/__tests__/utils/format.test.ts
 src/utils/chartDataUtils.ts    -->  src/__tests__/utils/chartDataUtils.test.ts
+src/utils/slugify.ts           -->  src/__tests__/utils/slugify.test.ts
 src/components/GenderBarChart.tsx -->  src/__tests__/components/GenderBarChart.test.tsx
 src/components/BarChartTooltip.tsx --> src/__tests__/components/BarChartTooltip.test.tsx
 src/components/DashboardHeader.tsx -->  src/__tests__/components/DashboardHeader.test.tsx

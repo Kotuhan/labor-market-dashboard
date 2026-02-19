@@ -12,7 +12,8 @@ Single-page application for interactive labor market modeling.
 | Component | Technology | Purpose |
 |-----------|------------|---------|
 | App Shell | React 19 / Vite 6 | Component framework, fast HMR (per ADR-0001) |
-| State Management | React useReducer | Tree state via `treeReducer`, auto-balance logic (per ADR-0004) |
+| Routing | wouter 3.x | Hash-based client-side routing (`/#/`, `/#/config`) for GitHub Pages compatibility (per ADR-0006) |
+| State Management | React useReducer | Tree state via `treeReducer`, 9 action types, auto-balance logic (per ADR-0004) |
 | Visualization | Recharts | Pie charts (per-gender industry breakdown) and grouped bar chart (cross-gender comparison) with tooltips |
 | Styling | Tailwind CSS v4 | CSS-first config, `@tailwindcss/vite` plugin (per ADR-0002) |
 | Hosting | GitHub Pages | Static SPA, no backend |
@@ -43,6 +44,19 @@ Key interfaces (implemented in `src/types/tree.ts`):
 - `BalanceMode` — `'auto' | 'free'` union type for slider behavior
 - `TreeNode` — recursive node with id, label, percentage, absoluteValue, genderSplit, children, defaultPercentage, isLocked, optional kvedCode
 - `DashboardState` — totalPopulation, balanceMode (BalanceMode), tree (single TreeNode root)
+
+### Routing Architecture
+
+Hash-based routing via wouter (per ADR-0006):
+
+| Route | Hash URL | Page Component | Purpose |
+|-------|----------|----------------|---------|
+| `/` | `/#/` | DashboardPage | Main dashboard with sliders, pie charts, bar chart |
+| `/config` | `/#/config` | ConfigPage | Tree configuration (add/remove industries and subcategories) |
+
+**State persistence**: `useTreeState()` is called in App.tsx ABOVE the `<Router>`, so tree state persists across route transitions. Pages receive `state` and `dispatch` via props (no React Context).
+
+**Layout**: AppLayout wraps all routes with a collapsible Sidebar for navigation. Sidebar uses wouter `Link` with `useLocation()` for active link styling.
 
 ### Auto-Balance Algorithm
 
@@ -85,6 +99,7 @@ Centralized TypeScript, ESLint, and Prettier configs shared across the monorepo.
 | Styles | Tailwind CSS | 4.x | CSS-first config, no JS config file | ADR-0002 |
 | Linting | ESLint | 8.x (legacy format) | Monorepo consistency, `.eslintrc.cjs` | ADR-0003 |
 | Charts | Recharts | 2.15.x | Pie chart support, animations, SVG rendering | ADR-0005 |
+| Routing | wouter | 3.x | Hash-based routing (~2KB), 2-route SPA on GitHub Pages | ADR-0006 |
 | State | React useReducer | 19.x (built-in) | Lightweight tree state, exported reducer for testability | ADR-0004 |
 | Tests | Vitest + RTL | 3.x | Unit and integration tests | -- |
 | CI/CD | GitHub Actions | TBD | Auto-deploy on push to main | -- |
@@ -96,7 +111,7 @@ Centralized TypeScript, ESLint, and Prettier configs shared across the monorepo.
 
 | Module | Location | Responsibility | Since |
 |--------|----------|----------------|-------|
-| App Shell | `apps/labor-market-dashboard/src/App.tsx` | Composition root: wires useTreeState to DashboardHeader + 2 GenderSections. No business logic (named export) | task-001, task-008 |
+| App Shell | `apps/labor-market-dashboard/src/App.tsx` | Router boundary: calls useTreeState above wouter Router, wraps AppLayout + Route-based page rendering. No business logic (named export) | task-001, task-008, task-011 |
 | Entry Point | `apps/labor-market-dashboard/src/main.tsx` | React 19 StrictMode bootstrap (named import of App) | task-001, task-007 |
 | Tailwind Entry | `apps/labor-market-dashboard/src/index.css` | `@import "tailwindcss"` (v4 CSS-first) | task-001 |
 | Vite Config | `apps/labor-market-dashboard/vite.config.ts` | React + Tailwind plugins, `@` alias | task-001 |
@@ -111,27 +126,27 @@ Centralized TypeScript, ESLint, and Prettier configs shared across the monorepo.
 | Data Barrel | `apps/labor-market-dashboard/src/data/index.ts` | Value re-exports for `defaultTree` and `largestRemainder` | task-003 |
 | Data Helper Tests | `apps/labor-market-dashboard/src/__tests__/data/dataHelpers.test.ts` | `largestRemainder` edge cases (8 tests) | task-003 |
 | Default Tree Tests | `apps/labor-market-dashboard/src/__tests__/data/defaultTree.test.ts` | Structure, math, completeness, DashboardState compatibility (26 tests) | task-003 |
-| Action Types | `apps/labor-market-dashboard/src/types/actions.ts` | TreeAction discriminated union (5 action types for useReducer) | task-004 |
-| Tree Utils | `apps/labor-market-dashboard/src/utils/treeUtils.ts` | Immutable tree traversal/update helpers (find, update, collect), SiblingInfo interface | task-004 |
+| Action Types | `apps/labor-market-dashboard/src/types/actions.ts` | TreeAction discriminated union (9 action types: 5 core + 4 tree mutation for useReducer) | task-004, task-011 |
+| Tree Utils | `apps/labor-market-dashboard/src/utils/treeUtils.ts` | Immutable tree traversal/update/mutation helpers (find, update, collect, addChild, removeChild, generateUniqueId), SiblingInfo interface | task-004, task-011 |
 | Calculations | `apps/labor-market-dashboard/src/utils/calculations.ts` | autoBalance, normalizeGroup, recalcAbsoluteValues, getSiblingDeviation, canToggleLock | task-004 |
 | Utils Barrel | `apps/labor-market-dashboard/src/utils/index.ts` | Value + type re-exports for utils module | task-004 |
-| useTreeState Hook | `apps/labor-market-dashboard/src/hooks/useTreeState.ts` | useReducer-based state: treeReducer + useTreeState hook + initialState | task-004 |
+| useTreeState Hook | `apps/labor-market-dashboard/src/hooks/useTreeState.ts` | useReducer-based state: treeReducer (9 actions) + useTreeState hook + initialState | task-004, task-011 |
 | Hooks Barrel | `apps/labor-market-dashboard/src/hooks/index.ts` | Value re-exports for hooks module | task-004 |
-| Tree Utils Tests | `apps/labor-market-dashboard/src/__tests__/utils/treeUtils.test.ts` | find, update, immutability, sibling info (15 tests) | task-004 |
+| Tree Utils Tests | `apps/labor-market-dashboard/src/__tests__/utils/treeUtils.test.ts` | find, update, immutability, sibling info, add/remove child, generateUniqueId (29 tests) | task-004, task-011 |
 | Calculations Tests | `apps/labor-market-dashboard/src/__tests__/utils/calculations.test.ts` | auto-balance, normalize, recalc, deviation, lock guard (28 tests) | task-004 |
-| useTreeState Tests | `apps/labor-market-dashboard/src/__tests__/hooks/useTreeState.test.ts` | All 5 actions, cascading recalc, performance (19 tests) | task-004 |
+| useTreeState Tests | `apps/labor-market-dashboard/src/__tests__/hooks/useTreeState.test.ts` | All 9 actions, cascading recalc, performance, tree mutations (38 tests) | task-004, task-011 |
 | Slider | `apps/labor-market-dashboard/src/components/Slider.tsx` | Controlled range input + numeric input + lock toggle (first UI component) | task-005 |
-| Components Barrel | `apps/labor-market-dashboard/src/components/index.ts` | Barrel re-export: 10 components, value + type exports | task-005, task-008 |
+| Components Barrel | `apps/labor-market-dashboard/src/components/index.ts` | Barrel re-export: 21 components (12 dashboard + 1 page + 2 layout + 6 config), value + type exports | task-005, task-008, task-011 |
 | Format Utility | `apps/labor-market-dashboard/src/utils/format.ts` | `formatAbsoluteValue()` (Ukrainian "тис." abbreviation), `formatPercentage()` (1 decimal), `formatPopulation()` (full number with space-separated thousands), manual `formatWithSpaces()` | task-005, task-008 |
 | Test Setup | `apps/labor-market-dashboard/src/__tests__/setup.ts` | Global `@testing-library/jest-dom/vitest` matcher registration | task-005 |
 | Format Tests | `apps/labor-market-dashboard/src/__tests__/utils/format.test.ts` | 19 tests: formatAbsoluteValue + formatPercentage + formatPopulation edge cases | task-005, task-008 |
 | Slider Tests | `apps/labor-market-dashboard/src/__tests__/components/Slider.test.tsx` | 22 tests: rendering, range input, numeric input, lock toggle, a11y, prop sync | task-005 |
-| Chart Colors | `apps/labor-market-dashboard/src/data/chartColors.ts` | KVED-to-hex color palette (16 industries), gender colors, ghost/overflow/default colors | task-006 |
+| Chart Colors | `apps/labor-market-dashboard/src/data/chartColors.ts` | KVED-to-hex color palette (16 industries), gender colors, ghost/overflow/default colors, DYNAMIC_COLOR_PALETTE (8 colors for custom industries) | task-006, task-011 |
 | Chart Data Utils | `apps/labor-market-dashboard/src/utils/chartDataUtils.ts` | `toChartData()`, `getNodeColor()`, `generateSubcategoryColors()`, `toBarChartData()`, PieDataEntry and BarChartDataEntry interfaces | task-006, task-012 |
 | ChartTooltip | `apps/labor-market-dashboard/src/components/ChartTooltip.tsx` | Custom Recharts tooltip with Ukrainian formatting (reuses format.ts utilities) | task-006 |
 | ChartLegend | `apps/labor-market-dashboard/src/components/ChartLegend.tsx` | Scrollable legend with semantic `ul/li` markup and color swatches | task-006 |
 | PieChartPanel | `apps/labor-market-dashboard/src/components/PieChartPanel.tsx` | Main pie chart wrapper (React.memo, Recharts PieChart, size variants, ghost slice, sr-only table) | task-006 |
-| Chart Color Tests | `apps/labor-market-dashboard/src/__tests__/data/chartColors.test.ts` | 8 tests: palette completeness, valid hex, no duplicates | task-006 |
+| Chart Color Tests | `apps/labor-market-dashboard/src/__tests__/data/chartColors.test.ts` | 12 tests: palette completeness, valid hex, no duplicates, dynamic palette | task-006, task-011 |
 | Chart Data Utils Tests | `apps/labor-market-dashboard/src/__tests__/utils/chartDataUtils.test.ts` | 21 tests: toChartData, getNodeColor, generateSubcategoryColors, toBarChartData | task-006, task-012 |
 | ChartTooltip Tests | `apps/labor-market-dashboard/src/__tests__/components/ChartTooltip.test.tsx` | 5 tests: rendering, null states, ghost slice handling | task-006 |
 | ChartLegend Tests | `apps/labor-market-dashboard/src/__tests__/components/ChartLegend.test.tsx` | 5 tests: list items, labels, semantic markup, maxHeight | task-006 |
@@ -150,12 +165,32 @@ Centralized TypeScript, ESLint, and Prettier configs shared across the monorepo.
 | GenderSection Tests | `apps/labor-market-dashboard/src/__tests__/components/GenderSection.test.tsx` | 7 tests: TreePanel + PieChartPanel pairing, aria-labels, industry data | task-008 |
 | TreePanel | `apps/labor-market-dashboard/src/components/TreePanel.tsx` | Single-gender tree container: expand/collapse state (local useState), gender heading, industry rows, deviation warnings (124 lines) | task-007, task-008 |
 | TreeRow | `apps/labor-market-dashboard/src/components/TreeRow.tsx` | Recursive tree row: React.memo, chevron toggle, indentation, embedded Slider, canToggleLock, deviation warnings, mini subcategory pie charts | task-007, task-008 |
-| TreeRow Tests | `apps/labor-market-dashboard/src/__tests__/components/TreeRow.test.tsx` | 32 tests: rendering, chevron, expand/collapse, indentation, Slider, a11y, canLock, deviation warnings, mini pie charts | task-007, task-008 |
-| TreePanel Tests | `apps/labor-market-dashboard/src/__tests__/components/TreePanel.test.tsx` | 16 tests: single-gender API, industry nodes, expand/collapse, deviation warnings, a11y | task-007, task-008 |
+| TreeRow Tests | `apps/labor-market-dashboard/src/__tests__/components/TreeRow.test.tsx` | 30 tests: rendering, chevron, expand/collapse, indentation, Slider, a11y, canLock, deviation warnings, mini pie charts | task-007, task-008 |
+| TreePanel Tests | `apps/labor-market-dashboard/src/__tests__/components/TreePanel.test.tsx` | 23 tests: single-gender API, industry nodes, expand/collapse, deviation warnings, a11y, auto-expand custom nodes | task-007, task-008, task-011 |
+
+| Slugify Utility | `apps/labor-market-dashboard/src/utils/slugify.ts` | Ukrainian-to-Latin transliteration for node ID generation (`slugify()`) | task-011 |
+| DashboardPage | `apps/labor-market-dashboard/src/components/DashboardPage.tsx` | Dashboard page composition root: DashboardHeader + GenderBarChart + 2 GenderSections. Receives `{ state, dispatch }` props | task-011 |
+| AppLayout | `apps/labor-market-dashboard/src/components/layout/AppLayout.tsx` | Flex layout shell: collapsible Sidebar + scrollable content area. Local `isSidebarOpen` state | task-011 |
+| Sidebar | `apps/labor-market-dashboard/src/components/layout/Sidebar.tsx` | Collapsible nav with wouter Link/useLocation. Dashboard + Configuration links, active styling, `aria-current="page"` | task-011 |
+| Layout Barrel | `apps/labor-market-dashboard/src/components/layout/index.ts` | Barrel re-export: AppLayout, Sidebar | task-011 |
+| ConfigPage | `apps/labor-market-dashboard/src/components/config/ConfigPage.tsx` | Config page composition root: `<h1>` title + 2 ConfigGenderSection instances | task-011 |
+| ConfigGenderSection | `apps/labor-market-dashboard/src/components/config/ConfigGenderSection.tsx` | Gender section with expand/collapse, removal confirmation flow (single ConfirmDialog), auto-expand via useRef guard | task-011 |
+| ConfigIndustryRow | `apps/labor-market-dashboard/src/components/config/ConfigIndustryRow.tsx` | Industry row: label, percentage, absolute value, remove button, expand chevron for subcategories | task-011 |
+| ConfigSubcategoryRow | `apps/labor-market-dashboard/src/components/config/ConfigSubcategoryRow.tsx` | Subcategory row: label, percentage, absolute value, remove button | task-011 |
+| AddNodeForm | `apps/labor-market-dashboard/src/components/config/AddNodeForm.tsx` | Inline form for adding industries/subcategories. Validates non-empty label, dispatches ADD_INDUSTRY or ADD_SUBCATEGORY | task-011 |
+| ConfirmDialog | `apps/labor-market-dashboard/src/components/config/ConfirmDialog.tsx` | Native `<dialog>` modal for destructive action confirmation. showModal() focus trap, Escape via cancel event | task-011 |
+| Config Barrel | `apps/labor-market-dashboard/src/components/config/index.ts` | Barrel re-export: 6 config components + props interfaces | task-011 |
+| Slugify Tests | `apps/labor-market-dashboard/src/__tests__/utils/slugify.test.ts` | 10 tests: Ukrainian transliteration, edge cases, empty input | task-011 |
+| DashboardPage Tests | `apps/labor-market-dashboard/src/__tests__/components/DashboardPage.test.tsx` | 7 tests: header, population input, gender sections, pie charts, main area | task-011 |
+| Sidebar Tests | `apps/labor-market-dashboard/src/__tests__/components/layout/Sidebar.test.tsx` | 13 tests: nav landmark, active state, toggle, keyboard nav, a11y | task-011 |
+| ConfirmDialog Tests | `apps/labor-market-dashboard/src/__tests__/components/config/ConfirmDialog.test.tsx` | 8 tests: open/close, confirm/cancel, Escape, a11y | task-011 |
+| AddNodeForm Tests | `apps/labor-market-dashboard/src/__tests__/components/config/AddNodeForm.test.tsx` | 11 tests: submit dispatch, empty guard, clear on submit, validation | task-011 |
+| ConfigPage Tests | `apps/labor-market-dashboard/src/__tests__/components/config/ConfigPage.test.tsx` | 4 tests: heading, 2 gender sections, page structure | task-011 |
+| ConfigGenderSection Tests | `apps/labor-market-dashboard/src/__tests__/components/config/ConfigGenderSection.test.tsx` | 13 tests: industry rows, expand, add/remove, dialog flow | task-011 |
 
 ### Planned (Not Yet Implemented)
 
-All components from the initial roadmap are now implemented. Remaining work is polish, animations, and deployment (per PRD milestones M4+).
+All components from the initial roadmap are now implemented. The Tree Configuration Page (add/remove industries and subcategories) is also complete. Remaining work is polish, animations, and deployment (per PRD milestones M4+).
 
 ## Security Architecture
 
@@ -186,6 +221,7 @@ All components from the initial roadmap are now implemented. Remaining work is p
 | [ADR-0003](decisions/adr-0003-maintain-eslint-v8-legacy-config-format.md) | Maintain ESLint v8 legacy config format across monorepo | accepted | task-001 |
 | [ADR-0004](decisions/adr-0004-use-react-usereducer-for-state-management.md) | Use React useReducer for dashboard state management | accepted | task-004 |
 | [ADR-0005](decisions/adr-0005-use-recharts-2x-for-pie-chart-visualization.md) | Use Recharts 2.x for pie chart visualization | accepted | task-006 |
+| [ADR-0006](decisions/adr-0006-adopt-wouter-for-hash-routing.md) | Adopt wouter for hash-based client-side routing | accepted | task-011 |
 
 ## Development Conventions
 
@@ -270,15 +306,17 @@ Visualization components (PieChartPanel, ChartTooltip, ChartLegend, GenderBarCha
 - **Reuse formatting utilities**: Custom tooltip/legend components reuse `formatAbsoluteValue`/`formatPercentage` from `utils/format.ts` for Ukrainian number formatting.
 - **Accessibility**: `<figure role="img" aria-label={...}>` wrapper + `sr-only` data `<table>` for screen readers. Color swatches use `aria-hidden="true"`.
 
-### Composition Root Pattern
+### Router Boundary Pattern
 
-App.tsx is a pure **composition root** that wires `useTreeState()` and distributes state/dispatch to child components:
+App.tsx is the **router boundary** -- it calls `useTreeState()` ABOVE the `<Router>` so state persists across route transitions:
 
-- No business logic, no conditional rendering, no local state
-- `DashboardHeader` (sticky) at top with population input, mode toggle, reset button
-- `<main>` with responsive `grid grid-cols-1 lg:grid-cols-2 gap-6` containing 2 `GenderSection` instances
-- Gender nodes accessed via `state.tree.children[0]` (male) and `state.tree.children[1]` (female)
-- No direct tests -- all behavior verified via child component test suites
+- `useTreeState()` called at top of App, state lives above router
+- `<Router hook={useHashLocation}>` wraps `<AppLayout>` containing `<Switch>` with exclusive route matching
+- Two routes: `/` (DashboardPage), `/config` (ConfigPage) -- each receives `state`/`dispatch` via props
+- No React Context for state passing -- props are sufficient for 2 pages (per ADR-0004)
+- No business logic in App.tsx -- purely routing and state wiring
+- No direct tests -- routing verified via page and layout component test suites
+- wouter v3 imports: `Router`, `Route`, `Switch` from `wouter`; `useHashLocation` from `wouter/use-hash-location`
 
 ### Dashboard Header Pattern
 
@@ -339,6 +377,51 @@ Recharts 2.15.x is the charting library for all chart visualizations (per ADR-00
 - **Animation**: 300ms with `ease-out` easing. Recharts interrupts previous animations gracefully during rapid updates.
 - **Ghost slice (free mode, pie only)**: When percentages sum < 100%, a gray "Нерозподілено" entry is appended to chart data. When > 100%, an overflow badge is shown. Ghost slices excluded from legend and sr-only table.
 - **Testing**: `ResizeObserver` must be mocked in jsdom. Tests focus on DOM structure (figure, ARIA, data table, legend), not SVG geometry.
+
+### Layout Components Pattern
+
+Layout components live in `src/components/layout/` with their own barrel export:
+
+- **AppLayout**: Pure layout shell. `children: React.ReactNode`. Local `isSidebarOpen` state (UI-only). Flex row: Sidebar left + scrollable content right. `h-screen` on root.
+- **Sidebar**: Collapsible navigation. `isOpen`/`onToggle` props (controlled by AppLayout). wouter `<Link href="...">` for navigation. Active link via `useLocation()` + `aria-current="page"`. Collapsed: icon-only (`w-14`). Expanded: icon + text (`w-56`). Starts collapsed.
+
+### Config Components Pattern
+
+Config components live in `src/components/config/` with their own barrel export. They provide CRUD for industries and subcategories:
+
+- **ConfigPage**: Composition root. Same `{ state, dispatch }` props as DashboardPage. Two-column grid of ConfigGenderSection instances.
+- **ConfigGenderSection**: Section container + dialog host. Manages expand/collapse state, removal confirmation flow via single ConfirmDialog per gender section, auto-expand for newly created parents via `useRef<Set<string>>` guard.
+- **ConfigIndustryRow / ConfigSubcategoryRow**: Display rows. Do NOT dispatch removal directly -- call `onRemoveRequest` callback so parent manages ConfirmDialog.
+- **AddNodeForm**: Inline form dispatching `ADD_INDUSTRY` or `ADD_SUBCATEGORY`. Validates non-empty label. Clears on submit.
+- **ConfirmDialog**: Native `<dialog>` with `showModal()` for focus trap. Escape via native `cancel` event.
+
+### Dynamic Color Assignment Pattern
+
+Custom industries (added via ConfigPage, no KVED code) receive colors from `DYNAMIC_COLOR_PALETTE` (8 hex colors):
+
+- GenderSection builds a merged `colorMap` via `useMemo`: `INDUSTRY_COLORS` (16 KVED-keyed) + dynamic assignments (node-ID-keyed, cycling through `DYNAMIC_COLOR_PALETTE`)
+- Colors cycle when more than 8 custom industries exist in a gender
+- Subcategory colors for custom industries use the same `generateSubcategoryColors()` opacity-based shading
+- Palette chosen to avoid collision with the 16 `INDUSTRY_COLORS` values
+
+### Custom Node Convention
+
+User-added nodes are distinguished from default nodes via `defaultPercentage: 0`:
+- Default data nodes retain their original `defaultPercentage > 0` from `defaultTree`
+- Custom nodes are created with `defaultPercentage: 0`
+- On RESET, the reducer restores `initialState` which naturally excludes custom nodes
+- ConfigPage uses this distinction to identify which nodes can be safely removed
+
+### Tree Mutation Actions Pattern
+
+Four tree mutation actions extend the core 5 actions in `TreeAction`:
+
+- `ADD_INDUSTRY { genderId, label }`: Generates node ID via `slugify()` + `generateUniqueId()`, adds with equal redistribution
+- `REMOVE_INDUSTRY { nodeId }`: Removes industry and all subcategories, redistributes remaining siblings equally. Blocked if last industry in gender.
+- `ADD_SUBCATEGORY { industryId, label }`: Adds subcategory, converts leaf industry to parent. Equal redistribution.
+- `REMOVE_SUBCATEGORY { nodeId }`: Removes subcategory. If last child removed, industry becomes leaf again.
+
+All four use `addChildToParent()` / `removeChildFromParent()` from `treeUtils.ts` with `largestRemainder()` for exact 100.0% sums, followed by `recalcAbsoluteValues()`.
 
 ## Known Limitations
 
