@@ -23,6 +23,7 @@ User writes in Ukrainian, Claude responds in English.
 - **Styling**: Tailwind CSS v4 (CSS-first config, `@tailwindcss/vite` plugin -- no `tailwind.config.js`)
 - **Charts**: Recharts 2.x (2.15.x -- not 3.x, see app CLAUDE.md for rationale)
 - **State**: React `useReducer` (no external state library)
+- **Routing**: wouter (~2KB gzipped) for hash-based client-side routing (see ADR-0006 for rationale)
 - **Tests**: Vitest + React Testing Library
 - **Linting**: ESLint v8 (legacy `.eslintrc.cjs` format across monorepo)
 - **Hosting**: GitHub Pages via GitHub Actions
@@ -38,7 +39,7 @@ apps/
       data/                  # defaultTree.ts, dataHelpers.ts, chartColors.ts — Ukraine labor market defaults + chart colors
       hooks/                 # useTreeState (useReducer-based state management)
       types/                 # TreeNode, GenderSplit, BalanceMode, DashboardState, TreeAction
-      utils/                 # treeUtils.ts (tree ops), calculations.ts (auto-balance), format.ts (number display), chartDataUtils.ts (chart data transforms)
+      utils/                 # treeUtils.ts (tree ops, mutations), calculations.ts (auto-balance), format.ts (number display), chartDataUtils.ts (chart data transforms), slugify.ts (Ukrainian → ASCII slugs)
 packages/config/             # Shared ESLint, TS configs
 architecture/                # ADRs, contracts, diagrams, roadmap, runbooks
 docs/                        # Documentation, tasks (see docs/CLAUDE.md)
@@ -140,6 +141,9 @@ All apps extend shared configs from `packages/config/` (see [packages/config/CLA
 - Pure utility functions in `utils/` for testability; reducer composes them; hook is a thin wrapper
 - Immutable tree updates via recursive spread (no Immer, no structural sharing)
 - `largestRemainder()` used for all percentage rounding (1 decimal place, exact 100.0 sums)
+- **Tree mutations**: `addChildToParent()` and `removeChildFromParent()` always use `largestRemainder()` for equal redistribution. Both are followed by `recalcTreeFromRoot()` to update all `absoluteValue` fields.
+- **Custom nodes**: User-added industries/subcategories marked with `defaultPercentage: 0` (vs. default nodes with `defaultPercentage > 0`)
+- **Label-to-ID conversion**: `slugify()` transliterates Ukrainian labels to kebab-case ASCII slugs (e.g., "Кібербезпека" → "kiberbezpeka"). Combined with `generateUniqueId()` to prevent collisions.
 - **UI-only state stays local**: Expand/collapse, focus tracking, etc. use `useState` in the component -- NOT added to the reducer. Only data with business logic implications goes in the reducer.
 - See [apps/labor-market-dashboard/CLAUDE.md](apps/labor-market-dashboard/CLAUDE.md) for full details
 

@@ -2,11 +2,14 @@ import { describe, it, expect } from 'vitest';
 
 import type { TreeNode } from '@/types';
 import {
+  addChildToParent,
+  collectSiblingInfo,
   findNodeById,
   findParentById,
-  updateNodeInTree,
+  generateUniqueId,
+  removeChildFromParent,
   updateChildrenInTree,
-  collectSiblingInfo,
+  updateNodeInTree,
 } from '@/utils/treeUtils';
 
 /**
@@ -237,5 +240,202 @@ describe('collectSiblingInfo', () => {
     const info = collectSiblingInfo(leaf);
 
     expect(info).toEqual([]);
+  });
+});
+
+/** Helper to create a minimal leaf TreeNode for testing. */
+function createLeafNode(id: string, label: string): TreeNode {
+  return {
+    id,
+    label,
+    percentage: 0,
+    defaultPercentage: 0,
+    absoluteValue: 0,
+    genderSplit: { male: 50, female: 50 },
+    isLocked: false,
+    children: [],
+  };
+}
+
+describe('generateUniqueId', () => {
+  it('returns base ID when no collision', () => {
+    const tree = createTestTree();
+    const result = generateUniqueId(tree, 'child', 'c');
+
+    expect(result).toBe('child-c');
+  });
+
+  it('appends -2 suffix when base ID collides', () => {
+    const tree = createTestTree();
+    const result = generateUniqueId(tree, 'child', 'a');
+
+    expect(result).toBe('child-a-2');
+  });
+
+  it('appends -3 suffix when both base and -2 collide', () => {
+    const tree = createTestTree();
+    // Add a node with id 'child-a-2' to root's children
+    const modifiedTree: TreeNode = {
+      ...tree,
+      children: [
+        ...tree.children,
+        createLeafNode('child-a-2', 'Child A2'),
+      ],
+    };
+    const result = generateUniqueId(modifiedTree, 'child', 'a');
+
+    expect(result).toBe('child-a-3');
+  });
+
+  it('handles empty slug', () => {
+    const tree = createTestTree();
+    const result = generateUniqueId(tree, 'male', 'node');
+
+    expect(result).toBe('male-node');
+  });
+});
+
+describe('addChildToParent', () => {
+  it('adds child to parent with existing children and redistributes equally', () => {
+    const tree = createTestTree();
+    const result = addChildToParent(tree, 'root', createLeafNode('child-c', 'Child C'));
+    const root = result;
+
+    expect(root.children).toHaveLength(3);
+
+    const sum = root.children.reduce((s, c) => s + c.percentage, 0);
+    expect(sum).toBeCloseTo(100, 1);
+
+    // Each child should be approximately 33.3%
+    for (const child of root.children) {
+      expect(child.percentage).toBeGreaterThanOrEqual(33.3);
+      expect(child.percentage).toBeLessThanOrEqual(33.4);
+    }
+  });
+
+  it('adds child to parent with no existing children', () => {
+    const tree = createTestTree();
+    const result = addChildToParent(tree, 'child-b', createLeafNode('sub-b1', 'Sub B1'));
+    const childB = findNodeById(result, 'child-b')!;
+
+    expect(childB.children).toHaveLength(1);
+    expect(childB.children[0].percentage).toBe(100.0);
+  });
+
+  it('preserves immutability (original tree unchanged)', () => {
+    const tree = createTestTree();
+    const result = addChildToParent(tree, 'root', createLeafNode('child-c', 'Child C'));
+
+    expect(tree.children).toHaveLength(2);
+    expect(result.children).toHaveLength(3);
+    expect(result).not.toBe(tree);
+  });
+
+  it('redistributes with largestRemainder precision for many children', () => {
+    // Build a tree with 6 children under root
+    const root: TreeNode = {
+      id: 'root',
+      label: 'Root',
+      percentage: 100,
+      defaultPercentage: 100,
+      absoluteValue: 1000,
+      genderSplit: { male: 50, female: 50 },
+      isLocked: false,
+      children: Array.from({ length: 6 }, (_, i) => createLeafNode(`child-${i}`, `Child ${i}`)),
+    };
+
+    const result = addChildToParent(root, 'root', createLeafNode('new', 'New'));
+
+    expect(result.children).toHaveLength(7);
+
+    const sum = result.children.reduce((s, c) => s + c.percentage, 0);
+    expect(sum).toBeCloseTo(100, 1);
+
+    // Each approximately 100/7 = 14.28...
+    for (const child of result.children) {
+      expect(child.percentage).toBeGreaterThanOrEqual(14.2);
+      expect(child.percentage).toBeLessThanOrEqual(14.4);
+    }
+  });
+});
+
+describe('removeChildFromParent', () => {
+  it('removes child and redistributes equally', () => {
+    const tree = createTestTree();
+    const result = removeChildFromParent(tree, 'root', 'child-b');
+    const root = result;
+
+    expect(root.children).toHaveLength(1);
+    expect(root.children[0].id).toBe('child-a');
+    expect(root.children[0].percentage).toBe(100.0);
+  });
+
+  it('blocks removal when parent has only 1 child', () => {
+    const root: TreeNode = {
+      id: 'root',
+      label: 'Root',
+      percentage: 100,
+      defaultPercentage: 100,
+      absoluteValue: 1000,
+      genderSplit: { male: 50, female: 50 },
+      isLocked: false,
+      children: [createLeafNode('only-child', 'Only Child')],
+    };
+
+    const result = removeChildFromParent(root, 'root', 'only-child');
+
+    expect(result).toBe(root);
+    expect(result.children).toHaveLength(1);
+  });
+
+  it('returns original tree when parentId not found', () => {
+    const tree = createTestTree();
+    const result = removeChildFromParent(tree, 'nonexistent', 'child-a');
+
+    expect(result).toBe(tree);
+  });
+
+  it('returns unchanged children when childId not found in parent', () => {
+    const tree = createTestTree();
+    const result = removeChildFromParent(tree, 'root', 'nonexistent-child');
+
+    expect(result.children).toHaveLength(2);
+    expect(result.children[0].percentage).toBe(60);
+    expect(result.children[1].percentage).toBe(40);
+  });
+
+  it('preserves immutability on removal', () => {
+    const tree = createTestTree();
+    const result = removeChildFromParent(tree, 'root', 'child-b');
+
+    expect(tree.children).toHaveLength(2);
+    expect(result).not.toBe(tree);
+  });
+
+  it('redistributes correctly when removing from a group of 3+', () => {
+    // Root with 3 children each at ~33.3%
+    const root: TreeNode = {
+      id: 'root',
+      label: 'Root',
+      percentage: 100,
+      defaultPercentage: 100,
+      absoluteValue: 1000,
+      genderSplit: { male: 50, female: 50 },
+      isLocked: false,
+      children: [
+        { ...createLeafNode('x', 'X'), percentage: 33.3 },
+        { ...createLeafNode('y', 'Y'), percentage: 33.4 },
+        { ...createLeafNode('z', 'Z'), percentage: 33.3 },
+      ],
+    };
+
+    const result = removeChildFromParent(root, 'root', 'x');
+
+    expect(result.children).toHaveLength(2);
+    expect(result.children[0].percentage).toBe(50.0);
+    expect(result.children[1].percentage).toBe(50.0);
+
+    const sum = result.children.reduce((s, c) => s + c.percentage, 0);
+    expect(sum).toBeCloseTo(100, 1);
   });
 });

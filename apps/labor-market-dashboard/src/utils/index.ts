@@ -18,10 +18,15 @@ export type { PieDataEntry } from './chartDataUtils';
 
 export { formatAbsoluteValue, formatPercentage, formatPopulation } from './format';
 
+export { slugify } from './slugify';
+
 export {
+  addChildToParent,
   collectSiblingInfo,
   findNodeById,
   findParentById,
+  generateUniqueId,
+  removeChildFromParent,
   updateChildrenInTree,
   updateNodeInTree,
 } from './treeUtils';

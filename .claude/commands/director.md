@@ -271,7 +271,7 @@ The command will:
 1. Identify task-related files from workflow-history
 2. Exclude runtime files (*.db, .storage/, logs)
 3. Update workflow-history with commit entry
-4. Stage and commit with Co-Authored-By trailer
+4. Stage and commit
 5. Report committed files and hash
 ```
 

@@ -1,6 +1,6 @@
 import { useReducer } from 'react';
 
-import { defaultTree } from '@/data';
+import { defaultTree, largestRemainder } from '@/data';
 import type { DashboardState, TreeAction, TreeNode } from '@/types';
 import {
   autoBalance,
@@ -8,10 +8,14 @@ import {
   normalizeGroup,
   recalcAbsoluteValues,
 } from '@/utils/calculations';
+import { slugify } from '@/utils/slugify';
 import {
+  addChildToParent,
   collectSiblingInfo,
   findNodeById,
   findParentById,
+  generateUniqueId,
+  removeChildFromParent,
   updateChildrenInTree,
   updateNodeInTree,
 } from '@/utils/treeUtils';
@@ -72,12 +76,16 @@ function recalcTreeFromRoot(
 /**
  * Reducer function for the dashboard tree state.
  *
- * Handles 5 action types:
+ * Handles 9 action types:
  * - SET_PERCENTAGE: Change a node's percentage (auto-balance or free mode)
  * - TOGGLE_LOCK: Toggle a node's lock state (with guard)
  * - SET_BALANCE_MODE: Switch between auto and free mode
  * - SET_TOTAL_POPULATION: Change total population
  * - RESET: Restore to initial state
+ * - ADD_INDUSTRY: Add a new industry under a gender node
+ * - REMOVE_INDUSTRY: Remove an industry (and all its subcategories)
+ * - ADD_SUBCATEGORY: Add a new subcategory under an industry
+ * - REMOVE_SUBCATEGORY: Remove a subcategory (industry may become leaf)
  *
  * Exported as a named function for direct unit testing without React rendering.
  *
@@ -179,6 +187,106 @@ export function treeReducer(
       const { value } = action;
       const newTree = recalcTreeFromRoot(state.tree, value);
       return { ...state, totalPopulation: value, tree: newTree };
+    }
+
+    case 'ADD_INDUSTRY': {
+      const { genderId, label } = action;
+
+      const genderNode = findNodeById(state.tree, genderId);
+      if (!genderNode) return state;
+
+      const slug = slugify(label);
+      const genderPrefix = genderId.replace('gender-', '');
+      const nodeId = generateUniqueId(state.tree, genderPrefix, slug);
+      const genderSplit =
+        genderPrefix === 'male'
+          ? { male: 100, female: 0 }
+          : { male: 0, female: 100 };
+
+      const newNode: TreeNode = {
+        id: nodeId,
+        label,
+        percentage: 0,
+        defaultPercentage: 0,
+        absoluteValue: 0,
+        genderSplit,
+        isLocked: false,
+        children: [],
+      };
+
+      let newTree = addChildToParent(state.tree, genderId, newNode);
+      newTree = recalcTreeFromRoot(newTree, state.totalPopulation);
+
+      return { ...state, tree: newTree };
+    }
+
+    case 'REMOVE_INDUSTRY': {
+      const { nodeId } = action;
+
+      const parent = findParentById(state.tree, nodeId);
+      if (!parent) return state;
+
+      const newTree = removeChildFromParent(state.tree, parent.id, nodeId);
+      if (newTree === state.tree) return state;
+
+      const recalced = recalcTreeFromRoot(newTree, state.totalPopulation);
+      return { ...state, tree: recalced };
+    }
+
+    case 'ADD_SUBCATEGORY': {
+      const { industryId, label } = action;
+
+      const industryNode = findNodeById(state.tree, industryId);
+      if (!industryNode) return state;
+
+      const slug = slugify(label);
+      const nodeId = generateUniqueId(state.tree, industryId, slug);
+
+      const newNode: TreeNode = {
+        id: nodeId,
+        label,
+        percentage: 0,
+        defaultPercentage: 0,
+        absoluteValue: 0,
+        genderSplit: { ...industryNode.genderSplit },
+        isLocked: false,
+        children: [],
+      };
+
+      let newTree = addChildToParent(state.tree, industryId, newNode);
+      newTree = recalcTreeFromRoot(newTree, state.totalPopulation);
+
+      return { ...state, tree: newTree };
+    }
+
+    case 'REMOVE_SUBCATEGORY': {
+      const { nodeId } = action;
+
+      const parent = findParentById(state.tree, nodeId);
+      if (!parent) return state;
+
+      const newTree = updateChildrenInTree(
+        state.tree,
+        parent.id,
+        (children) => {
+          const remaining = children.filter((c) => c.id !== nodeId);
+          if (remaining.length === children.length) return children;
+          if (remaining.length === 0) return [];
+
+          const n = remaining.length;
+          const rawPercentages = Array.from({ length: n }, () => 100 / n);
+          const rounded = largestRemainder(rawPercentages, 100, 1);
+          return remaining.map((child, i) => ({
+            ...child,
+            percentage: rounded[i],
+          }));
+        },
+      );
+
+      if (newTree === state.tree) return state;
+
+      const recalced = recalcTreeFromRoot(newTree, state.totalPopulation);
+      return { ...state, tree: recalced };
     }
 
     case 'RESET': {

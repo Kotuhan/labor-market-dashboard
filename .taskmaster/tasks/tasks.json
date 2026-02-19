@@ -356,11 +356,59 @@
             "testStrategy": "Test complete CI/CD pipeline with sample commits, verify successful deployment to GitHub Pages, validate live site functionality and proper routing with base path configuration"
           }
         ]
+      },
+      {
+        "id": 11,
+        "title": "Tree Configuration Page (Add/Remove Industries & Subcategories)",
+        "description": "Create a separate configuration page for managing tree structure: add/remove industries and subcategories. Introduces hash routing and collapsible sidebar navigation.",
+        "details": "Add a dedicated Tree Configuration Page accessible via collapsible sidebar. Users can: (1) add/remove industries under each gender, (2) add/remove subcategories under any industry, (3) changes reflected on dashboard in real-time. Uses wouter for hash routing (/#/config). State shared across pages via props drilling through AppLayout. Equal redistribution on add/remove. Custom nodes removed on reset.",
+        "testStrategy": "Test navigation between dashboard and config page, verify add/remove operations update state correctly, ensure state persists across navigation, test edge cases (removing last subcategory, first subcategory on leaf, last industry blocked).",
+        "priority": "medium",
+        "dependencies": [9],
+        "status": "decomposed",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Core Infrastructure (wouter, slugify, tree helpers, reducer actions)",
+            "description": "Install wouter, create slugify utility, add tree add/remove functions, extend TreeAction with 4 new types, implement reducer handlers, create ADR-0006",
+            "dependencies": [],
+            "details": "TL design Steps 1-5. Install wouter (~2KB), create Ukrainian-to-slug transliteration, add addChildToParent/removeChildFromParent/generateUniqueId to treeUtils, extend TreeAction union, add reducer case handlers.",
+            "status": "pending",
+            "testStrategy": "Unit tests for slugify, tree helpers, and all 4 new reducer actions. Build passes, lint passes."
+          },
+          {
+            "id": 2,
+            "title": "Layout and Routing (AppLayout, Sidebar, DashboardPage, App.tsx)",
+            "description": "Create layout components, extract DashboardPage, restructure App.tsx with wouter hash router",
+            "dependencies": [1],
+            "details": "TL design Steps 7, 8, 15. Create AppLayout (sidebar + content), Sidebar (collapsible nav), DashboardPage (extracted from App.tsx), restructure App.tsx as router boundary.",
+            "status": "pending",
+            "testStrategy": "Component tests for Sidebar and DashboardPage. Navigation works between pages. State preserved across navigation."
+          },
+          {
+            "id": 3,
+            "title": "Config Page Components (ConfirmDialog, AddNodeForm, rows, ConfigPage)",
+            "description": "Create all configuration page components following composition pattern",
+            "dependencies": [2],
+            "details": "TL design Steps 9-14. Create ConfirmDialog (<dialog>), AddNodeForm, ConfigSubcategoryRow, ConfigIndustryRow, ConfigGenderSection, ConfigPage. All under src/components/config/.",
+            "status": "pending",
+            "testStrategy": "Component tests for ConfirmDialog, AddNodeForm, ConfigGenderSection, ConfigPage. Add/remove flows work end-to-end."
+          },
+          {
+            "id": 4,
+            "title": "Integration and Polish (dynamic colors, auto-expand, final verification)",
+            "description": "Add dynamic color palette, fix TreePanel auto-expand, update barrel exports, final verification",
+            "dependencies": [3],
+            "details": "TL design Steps 6, 16-18. Dynamic color palette for new industries, TreePanel useEffect for auto-expanding new expandable nodes, barrel export updates, full test/lint/build verification.",
+            "status": "pending",
+            "testStrategy": "All tests pass, lint clean, build succeeds, bundle < 500KB. Manual smoke test of full workflow."
+          }
+        ]
       }
     ],
     "metadata": {
       "created": "2026-02-17T09:25:31.553Z",
-      "updated": "2026-02-17T09:25:31.553Z",
+      "updated": "2026-02-18T10:00:00.000Z",
       "description": "Tasks for master context"
     }
   }

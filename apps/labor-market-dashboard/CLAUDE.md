@@ -189,21 +189,67 @@ useTreeState (thin hook)  -->  treeReducer (exported, testable)  -->  pure utili
 
 ### Action Types (`src/types/actions.ts`)
 
-5 actions as a discriminated union on `type` field:
+9 actions as a discriminated union on `type` field (core + tree mutation):
+
+**Core actions** (5):
 - `SET_PERCENTAGE` -- triggers auto-balance (auto mode) or single-node update (free mode)
 - `TOGGLE_LOCK` -- with lock guard (`canToggleLock` prevents locking the last unlocked sibling)
 - `SET_BALANCE_MODE` -- free-to-auto normalizes all sibling groups to 100%
 - `SET_TOTAL_POPULATION` -- recalculates all absolute values, percentages unchanged
 - `RESET` -- returns `initialState` (reference to `defaultTree`)
 
+**Tree mutation actions** (4):
+- `ADD_INDUSTRY` -- add new industry under a gender node with equal redistribution
+- `REMOVE_INDUSTRY` -- remove an industry and all its subcategories, with redistribution
+- `ADD_SUBCATEGORY` -- add new subcategory under an industry with equal redistribution
+- `REMOVE_SUBCATEGORY` -- remove a subcategory; industry becomes leaf if last child removed
+
 ### Utils Module (`src/utils/`)
 
-Two files with distinct responsibilities:
+Four files with distinct responsibilities:
 
-- **`treeUtils.ts`**: Tree traversal and immutable update helpers (`findNodeById`, `findParentById`, `updateNodeInTree`, `updateChildrenInTree`, `collectSiblingInfo`). Also defines `SiblingInfo` interface.
+- **`treeUtils.ts`**: Tree traversal, immutable updates, and tree mutations. Functions: `findNodeById`, `findParentById`, `updateNodeInTree`, `updateChildrenInTree`, `collectSiblingInfo`, `generateUniqueId`, `addChildToParent`, `removeChildFromParent`. Also defines `SiblingInfo` interface.
 - **`calculations.ts`**: Pure mathematical functions (`autoBalance`, `normalizeGroup`, `recalcAbsoluteValues`, `getSiblingDeviation`, `canToggleLock`). Also defines `PercentageUpdate` interface.
+- **`slugify.ts`**: Ukrainian-to-Latin transliteration (`slugify()`). Converts Ukrainian labels to kebab-case ASCII slugs for node IDs (e.g., "Кібербезпека" → "kiberbezpeka").
+- **`format.ts`**: Number formatting utilities (already documented above).
 
 Interfaces (`SiblingInfo`, `PercentageUpdate`) are co-located with the functions that produce/consume them in `utils/`, not in `types/`. The barrel `utils/index.ts` re-exports them with `export type { ... }`.
+
+### Tree Mutation Helpers (`src/utils/treeUtils.ts`)
+
+Three new functions for adding/removing nodes with automatic equal redistribution:
+
+- **`generateUniqueId(tree, prefix, slug)`** -- Builds a candidate ID from prefix and slug. If a collision exists in the tree, appends numeric suffix (`-2`, `-3`, etc.) until unique. Used by `ADD_INDUSTRY` and `ADD_SUBCATEGORY` actions.
+
+- **`addChildToParent(tree, parentId, newChild)`** -- Appends `newChild` to parent's children and redistributes all children's percentages equally (including the new child) using `largestRemainder`. Returns new tree; caller is responsible for `recalcAbsoluteValues`.
+
+- **`removeChildFromParent(tree, parentId, childId)`** -- Removes child from parent and redistributes remaining children's percentages equally using `largestRemainder`. Blocks removal if parent has only 1 child (gender must always have >= 1 industry). Returns original tree if blocked or child not found.
+
+**Key invariant**: Both functions ensure all sibling percentages sum to exactly 100.0 via `largestRemainder`. After calling either function, the caller MUST invoke `recalcTreeFromRoot` to update all `absoluteValue` fields down the tree.
+
+### Custom Node Convention
+
+User-added industries and subcategories are marked with `defaultPercentage: 0` (vs. `defaultPercentage > 0` for default data nodes). This distinction allows the config page to identify which nodes are custom and can be safely removed. Default nodes retain their original `defaultPercentage` value from the hardcoded `defaultTree`.
+
+### Slugify Utility (`src/utils/slugify.ts`)
+
+Converts Ukrainian labels to URL-safe kebab-case slugs for node ID generation:
+
+```typescript
+slugify("Кібербезпека")          // "kiberbezpeka"
+slugify("Розробка ПЗ")           // "rozrobka-pz"
+slugify("UI/UX Дизайн")          // "ui-ux-dyzain"
+```
+
+**Algorithm**:
+1. Lowercase input
+2. Transliterate Cyrillic via 33-character map (`а→a`, `ж→zh`, `ч→ch`, etc.)
+3. Keep ASCII alphanumerics; drop unmapped special characters
+4. Collapse whitespace/slashes to hyphens
+5. Trim leading/trailing hyphens
+6. Fallback to "node" if result is empty
+
+Used by `ADD_INDUSTRY` and `ADD_SUBCATEGORY` reducers to generate predictable node IDs from user-provided labels.
 
 ### Barrel Export Convention (hooks/ and utils/)
 
@@ -214,8 +260,8 @@ export { initialState, treeReducer, useTreeState } from './useTreeState';
 
 `utils/index.ts` uses **mixed exports** -- value exports for functions, `export type` for interfaces:
 ```typescript
-export { autoBalance, canToggleLock, ... } from './calculations';
-export type { PercentageUpdate } from './calculations';
+export { autoBalance, canToggleLock, addChildToParent, removeChildFromParent, generateUniqueId, slugify, ... } from './...';
+export type { PercentageUpdate, SiblingInfo } from './...';
 ```
 
 ### Auto-Balance Algorithm Summary
@@ -485,6 +531,12 @@ expectTypeOf<TreeNode>().not.toBeNever();
 ```
 
 Use `import type` for type-only imports in test files. The `expectTypeOf` pattern consumes the type reference, satisfying `noUnusedLocals`.
+
+### DO NOT (Tree Mutations)
+
+- Call `addChildToParent` or `removeChildFromParent` without following up with `recalcTreeFromRoot` -- these functions update percentages but not `absoluteValue` fields
+- Use `removeChildFromParent` on a parent with only 1 child -- it blocks removal (returns original tree). Gender nodes must always have >= 1 industry.
+- Try to remove the last subcategory from an industry using `removeChildFromParent` -- use `REMOVE_SUBCATEGORY` action instead, which has different semantics (allows leaf conversion)
 
 ## DO NOT
 

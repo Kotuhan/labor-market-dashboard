@@ -68,7 +68,6 @@ Build a commit message using this format:
 
 {2-3 line summary of what was implemented/changed}
 
-Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 ```
 
 **Action verb** selection:
@@ -88,7 +87,6 @@ Add HA automations to turn off boiler and heater plugs during grid
 outages and restore them when power returns with SOC threshold checks.
 Includes 4 automations, 3 input entities, and event integration.
 
-Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 ```
 
 Subtask:
@@ -98,7 +96,6 @@ Scaffold Next.js project with glassmorphism design system (task-020.1)
 Create web-ui/ directory with Next.js 15, Tailwind CSS, glassmorphism
 styles, Docker multi-stage build, and docker-compose integration.
 
-Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
 ```
 
 ### Step 5: Update Workflow History (BEFORE committing)
@@ -146,7 +143,6 @@ This prevents stale statuses when the git-commit runs as the final action in a s
    git commit -m "$(cat <<'EOF'
    Commit message here.
 
-   Co-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>
    EOF
    )"
    ```

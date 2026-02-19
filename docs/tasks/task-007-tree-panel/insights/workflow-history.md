@@ -237,3 +237,38 @@ This file tracks all agent runs and workflow transitions for this task.
   - docs/README.md (added task-007 row)
 - **Next stage**: git-commit (user approval required)
 
+---
+
+## 2026-02-17 19:20 - Git Commit
+
+- **Agent**: director (git-commit)
+- **Result**: completed
+- **Summary**: Committed all task-007 files — 4 new source/test files, 3 modified app files, architecture + CLAUDE.md updates, and full task documentation.
+- **Commit**: 61b5d51
+- **Commit message**: Build expandable tree panel UI with recursive components (task-007)
+- **Next stage**: done
+
+---
+
+## 2026-02-17 19:20 - Task Complete
+
+- **Final Status**: DONE
+- **Total Duration**: ~2 hours (17:20 to 19:20)
+- **Files Created**:
+  - apps/labor-market-dashboard/src/components/TreeRow.tsx
+  - apps/labor-market-dashboard/src/components/TreePanel.tsx
+  - apps/labor-market-dashboard/src/__tests__/components/TreeRow.test.tsx
+  - apps/labor-market-dashboard/src/__tests__/components/TreePanel.test.tsx
+  - docs/tasks/task-007-tree-panel/ (task.md, plan.md, insights/*)
+- **Files Modified**:
+  - apps/labor-market-dashboard/src/components/index.ts
+  - apps/labor-market-dashboard/src/App.tsx
+  - apps/labor-market-dashboard/src/main.tsx
+  - apps/labor-market-dashboard/CLAUDE.md
+  - CLAUDE.md
+  - architecture/overview.md
+  - docs/README.md
+- **Commit**: 61b5d51
+- **Patterns Captured**: Container+recursive component split, UI-only state in useState (not reducer), useCallback for memo'd children, section→region role mapping in tests
+- **Unblocked Tasks**: task-008 (Dashboard Layout + Mode Controls)
+
