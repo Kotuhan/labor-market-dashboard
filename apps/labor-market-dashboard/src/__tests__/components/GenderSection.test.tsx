@@ -1,4 +1,5 @@
 import { cleanup, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { GenderSection } from '@/components/GenderSection';
@@ -129,6 +130,7 @@ function makeProps(
     genderSiblings: [genderNode, makeFemaleSibling()],
     balanceMode: 'auto',
     dispatch: vi.fn(),
+    mirrored: false,
     ...overrides,
   };
 }
@@ -165,8 +167,12 @@ describe('GenderSection composition', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders industry nodes in TreePanel', () => {
+  it('renders industry nodes when expanded', async () => {
+    const user = userEvent.setup();
     render(<GenderSection {...makeProps()} />);
+
+    // Expand industry list
+    await user.click(screen.getByRole('button', { name: /expand чоловіки/i }));
 
     // Use getAllByText because PieChartPanel sr-only table duplicates labels
     expect(screen.getAllByText('Торгівля').length).toBeGreaterThanOrEqual(1);
@@ -208,7 +214,8 @@ describe('GenderSection female variant', () => {
 // Balance mode passthrough
 // -------------------------------------------------------
 describe('GenderSection balance mode', () => {
-  it('passes balanceMode to TreePanel (deviation visible in free mode)', () => {
+  it('passes balanceMode to TreePanel (deviation visible in free mode)', async () => {
+    const user = userEvent.setup();
     const genderNode = makeTestGenderNode();
     // Set industries to sum to 90% (50 + 40 = 90)
     genderNode.children[1] = {
@@ -221,6 +228,9 @@ describe('GenderSection balance mode', () => {
         {...makeProps({ genderNode, balanceMode: 'free' })}
       />,
     );
+
+    // Expand industries to see the deviation warning
+    await user.click(screen.getByRole('button', { name: /expand чоловіки/i }));
 
     // TreePanel's deviation warning should be visible
     expect(screen.getByRole('status')).toHaveTextContent(

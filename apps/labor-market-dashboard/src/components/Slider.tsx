@@ -52,7 +52,7 @@ export function Slider({
     }
   }, [percentage, isEditing]);
 
-  /** Handle range slider drag. Dispatches on every change for real-time feedback. */
+  /** Handle range slider drag. Dispatches synchronously for instant feedback. */
   function handleRangeChange(e: React.ChangeEvent<HTMLInputElement>) {
     const value = Number(e.target.value);
     dispatch({ type: 'SET_PERCENTAGE', nodeId, value });

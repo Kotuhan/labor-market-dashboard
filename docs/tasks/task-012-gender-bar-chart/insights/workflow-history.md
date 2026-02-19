@@ -161,3 +161,42 @@
 - **Files modified**:
   - docs/README.md
 - **Next stage**: git-commit (awaiting user approval)
+
+---
+
+## 2026-02-19 11:20 - Git Commit
+
+- **Agent**: director
+- **Result**: completed
+- **Commit**: 0bf6772
+- **Message**: "Add gender comparison bar chart by industry (task-012)"
+- **Files committed**: 24 files (4 new source, 2 new test, 6 modified source/test, 8 task docs, 4 architecture/docs)
+- **Next stage**: done
+
+---
+
+## 2026-02-19 11:20 - Task Complete
+
+- **Final Status**: DONE
+- **Files Created**:
+  - apps/labor-market-dashboard/src/components/GenderBarChart.tsx
+  - apps/labor-market-dashboard/src/components/BarChartTooltip.tsx
+  - apps/labor-market-dashboard/src/__tests__/components/GenderBarChart.test.tsx
+  - apps/labor-market-dashboard/src/__tests__/components/BarChartTooltip.test.tsx
+  - docs/tasks/task-012-gender-bar-chart/ (task.md, plan.md, 7 insight files)
+- **Files Modified**:
+  - apps/labor-market-dashboard/src/utils/chartDataUtils.ts
+  - apps/labor-market-dashboard/src/utils/index.ts
+  - apps/labor-market-dashboard/src/components/index.ts
+  - apps/labor-market-dashboard/src/components/DashboardPage.tsx
+  - apps/labor-market-dashboard/src/data/chartColors.ts
+  - apps/labor-market-dashboard/src/__tests__/utils/chartDataUtils.test.ts
+  - apps/labor-market-dashboard/CLAUDE.md
+  - CLAUDE.md
+  - architecture/overview.md
+  - architecture/decisions/adr-0005-use-recharts-2x-for-pie-chart-visualization.md
+  - docs/README.md
+  - .taskmaster/tasks/tasks.json
+- **Commit**: 0bf6772
+- **Patterns Captured**: Bar chart visualization pattern, BarChartTooltip dual-gender pattern, KVED-based industry matching, X-axis rotation/truncation
+- **Unblocked Tasks**: none (task-012 has no dependents)

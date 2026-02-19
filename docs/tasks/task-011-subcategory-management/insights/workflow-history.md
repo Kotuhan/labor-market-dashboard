@@ -212,3 +212,29 @@
 - **Files modified**:
   - docs/README.md
 - **Next stage**: git-commit
+
+---
+
+## 2026-02-19 09:00 - Git Commit
+
+- **Agent**: director
+- **Result**: completed
+- **Commit**: c17f8d1
+- **Summary**: Parent completion commit — 8 files (architecture/overview.md, CLAUDE.md files, QA report, arch-update, summary, README.md, workflow-history).
+
+---
+
+## 2026-02-19 09:00 - Task Complete
+
+- **Final Status**: DONE
+- **Total Duration**: ~23 hours (2026-02-18 10:00 → 2026-02-19 09:00)
+- **Commits**:
+  - 33ed8dd — 11.1: Core infrastructure (wouter, slugify, tree helpers, actions, reducer)
+  - b1e8a23 — 11.2: Layout and routing (Sidebar, AppLayout, DashboardPage, router)
+  - 288281f — 11.3: Config page (6 components, native dialog, callback removal)
+  - fc1cb28 — 11.4: Integration (dynamic colors, auto-expand)
+  - c17f8d1 — Parent completion (architecture, QA, summary)
+- **Tests**: 407 total (90+ new)
+- **Bundle**: 192KB gzip
+- **Patterns Captured**: Router boundary, layout components, config components, ConfirmDialog, callback removal flow, auto-expand useRef guard, dynamic color assignment, wouter test isolation
+- **Unblocked Tasks**: None directly dependent

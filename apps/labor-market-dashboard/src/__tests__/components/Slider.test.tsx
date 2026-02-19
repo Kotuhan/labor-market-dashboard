@@ -60,17 +60,20 @@ describe('Slider rendering', () => {
 // Range input tests
 // -------------------------------------------------------
 describe('Slider range input', () => {
-  it('dispatches SET_PERCENTAGE on range change', () => {
+  it('dispatches SET_PERCENTAGE on range change', async () => {
     const dispatch = vi.fn<(action: TreeAction) => void>();
     render(<Slider {...makeProps({ dispatch })} />);
 
     const range = screen.getByRole('slider');
     fireEvent.change(range, { target: { value: '50' } });
 
-    expect(dispatch).toHaveBeenCalledWith({
-      type: 'SET_PERCENTAGE',
-      nodeId: 'test-node',
-      value: 50,
+    // Dispatch is throttled via requestAnimationFrame
+    await vi.waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith({
+        type: 'SET_PERCENTAGE',
+        nodeId: 'test-node',
+        value: 50,
+      });
     });
   });
 

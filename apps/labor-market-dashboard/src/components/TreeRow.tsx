@@ -22,6 +22,8 @@ export interface TreeRowProps {
   expandedIds: ReadonlySet<string>;
   /** Callback to toggle expand/collapse state of a node */
   onToggleExpand: (id: string) => void;
+  /** When true, chevrons appear on the right and indentation is from the right */
+  mirrored: boolean;
 }
 
 /**
@@ -30,6 +32,9 @@ export interface TreeRowProps {
  * Renders a single node with optional expand/collapse chevron, indentation,
  * and an embedded Slider. When expanded, recursively renders child nodes
  * and (in free mode) a deviation warning.
+ *
+ * When `mirrored` is true, the chevron appears on the right side of the slider
+ * and indentation grows from the right (paddingRight instead of paddingLeft).
  *
  * Wrapped in React.memo to prevent re-renders during sibling slider interactions.
  */
@@ -41,6 +46,7 @@ export const TreeRow = memo(function TreeRow({
   dispatch,
   expandedIds,
   onToggleExpand,
+  mirrored,
 }: TreeRowProps) {
   const hasChildren = node.children.length > 0;
   const isExpanded = expandedIds.has(node.id);
@@ -51,11 +57,21 @@ export const TreeRow = memo(function TreeRow({
     isExpanded && hasChildren && balanceMode === 'free';
   const deviation = showDeviation ? getSiblingDeviation(node) : 0;
 
+  const indentPx = `${depth * 24}px`;
+  const indentStyle = mirrored
+    ? { paddingRight: indentPx }
+    : { paddingLeft: indentPx };
+
+  const deviationIndentPx = `${(depth + 1) * 24}px`;
+  const deviationIndentStyle = mirrored
+    ? { paddingRight: deviationIndentPx }
+    : { paddingLeft: deviationIndentPx };
+
   return (
     <div>
       <div
-        className="flex items-center gap-1"
-        style={{ paddingLeft: `${depth * 24}px` }}
+        className={`flex items-center gap-1 ${mirrored ? 'flex-row-reverse' : ''}`}
+        style={indentStyle}
       >
         {/* Chevron toggle button -- only for nodes with children */}
         {hasChildren ? (
@@ -90,11 +106,19 @@ export const TreeRow = memo(function TreeRow({
                 className="h-5 w-5"
                 aria-hidden="true"
               >
-                <path
-                  fillRule="evenodd"
-                  d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z"
-                  clipRule="evenodd"
-                />
+                {mirrored ? (
+                  <path
+                    fillRule="evenodd"
+                    d="M11.78 5.22a.75.75 0 0 1 0 1.06L8.06 10l3.72 3.72a.75.75 0 1 1-1.06 1.06l-4.25-4.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Z"
+                    clipRule="evenodd"
+                  />
+                ) : (
+                  <path
+                    fillRule="evenodd"
+                    d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z"
+                    clipRule="evenodd"
+                  />
+                )}
               </svg>
             )}
           </button>
@@ -130,14 +154,15 @@ export const TreeRow = memo(function TreeRow({
             dispatch={dispatch}
             expandedIds={expandedIds}
             onToggleExpand={onToggleExpand}
+            mirrored={mirrored}
           />
         ))}
 
       {/* Subcategory deviation warning (free mode, expanded nodes with children) */}
       {showDeviation && deviation !== 0 && (
         <p
-          className="text-sm font-medium text-amber-600"
-          style={{ paddingLeft: `${(depth + 1) * 24}px` }}
+          className={`text-sm font-medium text-amber-600 ${mirrored ? 'text-right' : ''}`}
+          style={deviationIndentStyle}
           role="status"
         >
           Сума: {formatPercentage(100 + deviation)} ({deviation > 0 ? '+' : ''}{formatPercentage(deviation)})

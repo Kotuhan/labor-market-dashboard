@@ -67,6 +67,7 @@ function makeProps(overrides?: Partial<TreeRowProps>): TreeRowProps {
     dispatch: vi.fn(),
     expandedIds: new Set<string>(),
     onToggleExpand: vi.fn(),
+    mirrored: false,
     ...overrides,
   };
 }
@@ -228,6 +229,47 @@ describe('TreeRow indentation', () => {
 });
 
 // -------------------------------------------------------
+// Mirrored layout tests
+// -------------------------------------------------------
+describe('TreeRow mirrored layout', () => {
+  it('applies paddingRight instead of paddingLeft when mirrored', () => {
+    const { container } = render(
+      <TreeRow {...makeProps({ depth: 1, mirrored: true })} />,
+    );
+
+    const rowDiv = container.firstElementChild?.firstElementChild;
+    expect(rowDiv).toHaveStyle({ paddingRight: '24px' });
+  });
+
+  it('applies flex-row-reverse when mirrored', () => {
+    const { container } = render(
+      <TreeRow {...makeProps({ mirrored: true })} />,
+    );
+
+    const rowDiv = container.firstElementChild?.firstElementChild;
+    expect(rowDiv?.className).toContain('flex-row-reverse');
+  });
+
+  it('does not apply flex-row-reverse when not mirrored', () => {
+    const { container } = render(
+      <TreeRow {...makeProps({ mirrored: false })} />,
+    );
+
+    const rowDiv = container.firstElementChild?.firstElementChild;
+    expect(rowDiv?.className).not.toContain('flex-row-reverse');
+  });
+
+  it('uses paddingRight for mirrored depth 2', () => {
+    const { container } = render(
+      <TreeRow {...makeProps({ depth: 2, mirrored: true })} />,
+    );
+
+    const rowDiv = container.firstElementChild?.firstElementChild;
+    expect(rowDiv).toHaveStyle({ paddingRight: '48px' });
+  });
+});
+
+// -------------------------------------------------------
 // Slider integration tests
 // -------------------------------------------------------
 describe('TreeRow Slider integration', () => {
@@ -255,7 +297,7 @@ describe('TreeRow Slider integration', () => {
     expect(range).toBeDisabled();
   });
 
-  it('passes dispatch to Slider (range change dispatches SET_PERCENTAGE)', () => {
+  it('passes dispatch to Slider (range change dispatches SET_PERCENTAGE)', async () => {
     const dispatch = vi.fn<(action: TreeAction) => void>();
     const node = makeNode({ id: 'test-dispatch' });
     const siblings = [node, makeNode({ id: 's2' })];
@@ -266,10 +308,13 @@ describe('TreeRow Slider integration', () => {
     const range = screen.getByRole('slider');
     fireEvent.change(range, { target: { value: '50' } });
 
-    expect(dispatch).toHaveBeenCalledWith({
-      type: 'SET_PERCENTAGE',
-      nodeId: 'test-dispatch',
-      value: 50,
+    // Dispatch is throttled via requestAnimationFrame
+    await vi.waitFor(() => {
+      expect(dispatch).toHaveBeenCalledWith({
+        type: 'SET_PERCENTAGE',
+        nodeId: 'test-dispatch',
+        value: 50,
+      });
     });
   });
 });
@@ -469,4 +514,3 @@ describe('TreeRow deviation warnings', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 });
-

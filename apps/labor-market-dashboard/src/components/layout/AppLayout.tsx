@@ -19,7 +19,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const handleToggle = () => setIsSidebarOpen((prev) => !prev);
 
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="flex h-screen overflow-hidden bg-slate-50">
       <Sidebar isOpen={isSidebarOpen} onToggle={handleToggle} />
       <div className="flex flex-1 flex-col overflow-auto">{children}</div>
     </div>
