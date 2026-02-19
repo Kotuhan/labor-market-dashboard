@@ -36,6 +36,7 @@ apps/
     src/
       __tests__/             # Tests mirroring src/ structure
       components/            # DashboardHeader, GenderSection, ModeToggle, ResetButton, Slider, PieChartPanel, GenderBarChart, BarChartTooltip, ChartTooltip, ChartLegend, TreePanel, TreeRow
+        config/              # ConfigPage, ConfigGenderSection, ConfigIndustryRow, ConfigSubcategoryRow, AddNodeForm, ConfirmDialog
         layout/              # AppLayout (shell), Sidebar (collapsible nav) -- wouter routing
       data/                  # defaultTree.ts, dataHelpers.ts, chartColors.ts — Ukraine labor market defaults + chart colors
       hooks/                 # useTreeState (useReducer-based state management)
@@ -152,14 +153,15 @@ All apps extend shared configs from `packages/config/` (see [packages/config/CLA
 ### Component Pattern
 
 - **Router boundary**: App.tsx is the router boundary -- calls `useTreeState()` ABOVE `<Router>` so state persists across route transitions. Uses `<Router hook={useHashLocation}>` + `<Switch>` from wouter. AppLayout (sidebar + content shell) wraps all routes. Pages receive `state`/`dispatch` via props (no React Context).
-- **Page components**: DashboardPage extracts the former App.tsx content (DashboardHeader + 2 GenderSections). Future pages (ConfigPage) follow the same `{state, dispatch}` props pattern.
+- **Page components**: DashboardPage (dashboard view) and ConfigPage (industry/subcategory CRUD). Both receive `{ state, dispatch }` props from App.tsx router boundary.
 - **Controlled components**: No internal value state -- receive percentage/values as props, dispatch actions upward
 - **Minimal local state**: Only for input fields needing partial-typing support (string state synced from props via `useEffect`). Pattern used by Slider and DashboardHeader (population input).
 - **Read-only visualization**: Chart components (pie + bar) receive data as props, render only, no dispatch. Use `React.memo` for performance. Pie charts use `nodes: TreeNode[]`; bar chart uses `maleNode` + `femaleNode` props.
 - **Layout components**: `components/layout/` subdirectory contains AppLayout (flex shell with local `isSidebarOpen` state) and Sidebar (collapsible nav with wouter `Link` + `useLocation` for active styling). Layout has its own barrel (`layout/index.ts`) re-exported from the main barrel.
 - **Section container**: GenderSection pairs TreePanel + PieChartPanel per gender. TreePanel uses single-gender API (`genderNode` prop, not full tree root).
 - **Container + recursive child**: TreePanel (container, manages UI-only expand/collapse state via `useState<Set<string>>`) + TreeRow (recursive, `React.memo`, renders mini pie charts for expanded nodes).
-- **Barrel exports**: `components/index.ts` exports component + `export type` for props interface (15 dashboard + 6 config components + layout re-exports)
+- **Config components**: `components/config/` subdirectory (6 components) for industry/subcategory CRUD. Uses native `<dialog>` for confirmations, callback-based removal flow, `useRef`-guarded auto-expand. See app CLAUDE.md for full details.
+- **Barrel exports**: `components/index.ts` exports component + `export type` for props interface (15 dashboard + 6 config + layout re-exports). Config and layout subdirectories have their own barrel files.
 - **Touch targets**: All interactive elements >= 44x44px (WCAG 2.5.5)
 - **Heading hierarchy**: `<h1>` in DashboardHeader (title) -> `<h2>` in TreePanel (gender sections). Required by WCAG 1.3.1.
 - See [apps/labor-market-dashboard/CLAUDE.md](apps/labor-market-dashboard/CLAUDE.md) for full details

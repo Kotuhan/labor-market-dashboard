@@ -40,3 +40,21 @@ export type { DashboardPageProps } from './DashboardPage';
 // Layout components
 export { AppLayout, Sidebar } from './layout';
 export type { AppLayoutProps, SidebarProps } from './layout';
+
+// Config components
+export {
+  AddNodeForm,
+  ConfigGenderSection,
+  ConfigIndustryRow,
+  ConfigPage,
+  ConfigSubcategoryRow,
+  ConfirmDialog,
+} from './config';
+export type {
+  AddNodeFormProps,
+  ConfigGenderSectionProps,
+  ConfigIndustryRowProps,
+  ConfigPageProps,
+  ConfigSubcategoryRowProps,
+  ConfirmDialogProps,
+} from './config';

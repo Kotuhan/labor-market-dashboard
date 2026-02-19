@@ -1,6 +1,7 @@
 import { Route, Router, Switch } from 'wouter';
 import { useHashLocation } from 'wouter/use-hash-location';
 
+import { ConfigPage } from '@/components/config';
 import { DashboardPage } from '@/components/DashboardPage';
 import { AppLayout } from '@/components/layout';
 import { useTreeState } from '@/hooks';
@@ -23,14 +24,7 @@ export function App() {
             <DashboardPage state={state} dispatch={dispatch} />
           </Route>
           <Route path="/config">
-            <div className="p-8">
-              <h1 className="text-2xl font-bold text-slate-900">
-                Configuration
-              </h1>
-              <p className="mt-2 text-slate-600">
-                Configuration page coming soon.
-              </p>
-            </div>
+            <ConfigPage state={state} dispatch={dispatch} />
           </Route>
         </Switch>
       </AppLayout>

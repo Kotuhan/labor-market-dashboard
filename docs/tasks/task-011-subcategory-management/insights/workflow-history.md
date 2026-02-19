@@ -136,3 +136,12 @@
 - **Commit**: 33ed8dd
 - **Summary**: Installed wouter, created slugify utility, added 3 tree mutation helpers, extended TreeAction with 4 new types, implemented 4 reducer handlers, created ADR-0006. 323 tests pass, build ~176KB.
 - **Remaining subtasks**: 3 of 4
+
+---
+
+## 2026-02-19 04:00 - Subtask 11.2 Complete
+
+- **Subtask**: 11.2-layout-routing
+- **Commit**: b1e8a23
+- **Summary**: Added collapsible sidebar, AppLayout shell, DashboardPage (extracted from App.tsx), restructured App.tsx as router boundary with wouter useHashLocation. Routes: /#/ (dashboard), /#/config (placeholder). 343 tests pass (20 new). CLAUDE.md files updated with routing patterns.
+- **Remaining subtasks**: 2 of 4

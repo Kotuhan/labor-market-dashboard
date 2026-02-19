@@ -84,3 +84,13 @@ input[type="range"]:disabled::-moz-range-thumb {
   background: var(--color-slate-400);
   cursor: not-allowed;
 }
+
+/* ===================================================================
+   Native <dialog> backdrop styling
+   Tailwind v4 does not support ::backdrop pseudo-element via utility
+   classes, so we use a plain CSS rule.
+   =================================================================== */
+
+dialog::backdrop {
+  background-color: rgba(0, 0, 0, 0.4);
+}

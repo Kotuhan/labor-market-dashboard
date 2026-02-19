@@ -436,6 +436,56 @@ When `balanceMode === 'free'`, inline warnings appear when sibling percentages d
 - **Auto mode**: Deviation is always 0 (skipped via early guard), so no warnings render.
 - **`formatDeviation()` helper**: Private function in TreePanel.tsx that formats the deviation string. TreeRow formats inline (same logic, not extracted).
 
+### Config Components Pattern (`components/config/`)
+
+Config components live in a `config/` subdirectory (like `layout/`) with their own barrel export. They provide CRUD for industries and subcategories.
+
+- **ConfigPage (composition root)**: Same `{ state, dispatch }` props as DashboardPage. 2-column grid of ConfigGenderSection instances. No local state.
+- **ConfigGenderSection (section container + dialog host)**: Manages expand/collapse state, removal confirmation flow, and auto-expand for newly created parents. One `ConfirmDialog` per gender section (not per row).
+- **ConfigIndustryRow / ConfigSubcategoryRow**: Display rows with label, percentage, absolute value, and remove button. Row components do NOT dispatch directly for removal -- they call `onRemoveRequest` callback so the parent manages the ConfirmDialog.
+- **AddNodeForm**: Inline `<form>` that dispatches `ADD_INDUSTRY` or `ADD_SUBCATEGORY` on submit. Clears input after dispatch.
+- **ConfirmDialog**: Native `<dialog>` element with `showModal()` for built-in focus trap. Escape key handled via native `cancel` event listener. `autoFocus` on cancel button.
+
+#### ConfirmDialog Pattern (Native `<dialog>`)
+
+Uses the HTML `<dialog>` element with `showModal()` instead of `window.confirm()`:
+- **Controlled via `isOpen` prop**: `useEffect` calls `dialog.showModal()` / `dialog.close()` based on prop changes
+- **Escape handling**: Listens for native `cancel` event on the dialog element, calls `e.preventDefault()` + `onCancel()` to keep React in control
+- **Backdrop CSS**: Tailwind v4 does not support `::backdrop` via utility classes. Custom CSS rule in `index.css`: `dialog::backdrop { background-color: rgba(0, 0, 0, 0.4); }`
+- **jsdom mock required for tests**: jsdom does not implement `showModal()`/`close()`. Tests must mock them on `HTMLDialogElement.prototype` (see testing section below)
+
+#### Callback-Based Removal Flow
+
+Removal uses a single ConfirmDialog per ConfigGenderSection with callback-based state:
+
+1. Row component calls `onRemoveRequest(nodeId, label, hasChildren)` -- no direct dispatch
+2. ConfigGenderSection sets `pendingRemoval` state (nodeId + label + hasChildren)
+3. ConfirmDialog opens (`isOpen={pendingRemoval !== null}`)
+4. On confirm: dispatch `REMOVE_INDUSTRY` or `REMOVE_SUBCATEGORY` based on whether nodeId is a direct child of genderNode
+5. On cancel: clear `pendingRemoval`
+
+This avoids N dialogs for N rows and keeps removal logic centralized.
+
+#### Auto-Expand with useRef Guard
+
+ConfigGenderSection auto-expands industries that gain children (e.g., first subcategory added). A `useRef<Set<string>>` (`seenExpandableRef`) tracks IDs already auto-expanded, preventing re-expansion after the user explicitly collapses:
+
+```typescript
+const seenExpandableRef = useRef<Set<string>>(new Set());
+
+useEffect(() => {
+  const newExpandable = genderNode.children
+    .filter((child) => child.children.length > 0)
+    .filter((child) => !seenExpandableRef.current.has(child.id));
+  if (newExpandable.length > 0) {
+    newExpandable.forEach((n) => seenExpandableRef.current.add(n.id));
+    setExpandedIds((prev) => { /* add new IDs */ });
+  }
+}, [genderNode.children]);
+```
+
+**Key difference from TreePanel**: TreePanel starts all expandable nodes expanded (lazy `useState` initializer). ConfigGenderSection starts collapsed and auto-expands only when children are added.
+
 ### Mini Subcategory Pie Charts
 
 TreeRow renders a mini `PieChartPanel` for expanded nodes with children:
@@ -472,7 +522,7 @@ export { Slider } from './Slider';
 export type { SliderProps } from './Slider';
 ```
 
-Value export for the component, `export type` for the props interface. All 15 dashboard components follow this pattern: BarChartTooltip, ChartLegend, ChartTooltip, DashboardHeader, DashboardPage, GenderBarChart, GenderSection, ModeToggle, PieChartPanel, ResetButton, Slider, TreePanel, TreeRow + layout re-exports (AppLayout, Sidebar). Config components (6) are re-exported from `components/config/`. Layout components also have their own barrel at `components/layout/index.ts`.
+Value export for the component, `export type` for the props interface. All 15 dashboard components follow this pattern: BarChartTooltip, ChartLegend, ChartTooltip, DashboardHeader, DashboardPage, GenderBarChart, GenderSection, ModeToggle, PieChartPanel, ResetButton, Slider, TreePanel, TreeRow + layout re-exports (AppLayout, Sidebar). Config components (6: ConfirmDialog, AddNodeForm, ConfigSubcategoryRow, ConfigIndustryRow, ConfigGenderSection, ConfigPage) are re-exported from `components/config/index.ts`. Layout components also have their own barrel at `components/layout/index.ts`. Both subdirectory barrels follow the same value + `export type` pattern.
 
 ## Format Utility (`src/utils/format.ts`)
 
@@ -488,15 +538,16 @@ Shared formatting functions used by Slider, ChartTooltip, PieChartPanel, Dashboa
 - Use `Intl.NumberFormat` for space-separated thousands -- produces non-breaking spaces inconsistently across environments (Node vs browser)
 - Duplicate formatting logic in components -- always import from `@/utils/format`
 
-## Custom CSS for Native Range Inputs (`src/index.css`)
+## Custom CSS (`src/index.css`)
 
-The `index.css` file contains Tailwind import plus custom CSS for native `<input type="range">` styling:
+The `index.css` file contains Tailwind import, custom CSS for native `<input type="range">` styling, and `dialog::backdrop` styling:
 
 - **Vendor-prefixed pseudo-elements**: `::-webkit-slider-thumb`, `::-webkit-slider-runnable-track` (Chrome/Safari/Edge) and `::-moz-range-thumb`, `::-moz-range-track` (Firefox)
 - **Tailwind v4 CSS custom properties**: Uses `var(--color-blue-500)`, `var(--color-slate-200)` etc. -- Tailwind v4 exposes all theme colors as CSS custom properties automatically
 - **44x44px touch target**: Achieved via transparent `box-shadow` spread on the thumb (12px spread around 20px thumb)
 - **`:focus-visible`** (not `:focus`): Outline only appears for keyboard navigation, not mouse clicks
 - **`margin-top: -7px`** on WebKit thumb: Centers 20px thumb on 6px track (`-(20-6)/2 = -7`)
+- **`dialog::backdrop`**: Tailwind v4 does not support `::backdrop` pseudo-element via utility classes. Plain CSS rule: `background-color: rgba(0, 0, 0, 0.4)`
 
 ## Vitest Setup
 
@@ -562,6 +613,25 @@ function renderWithRouter(ui: React.ReactElement, options?: { path?: string }) {
 - **Link hrefs in tests**: With `memoryLocation`, links render plain paths (`/`, `/config`), not hash paths (`/#/`, `/#/config`). Assert on link role and accessible name, not exact href values.
 - **Active link testing**: Set `path` option to control which link appears active (has `aria-current="page"`)
 - **No ResizeObserver mock needed**: Routing/layout tests without Recharts do not need the ResizeObserver mock
+
+### Native `<dialog>` Testing in jsdom
+
+jsdom does not implement `HTMLDialogElement.showModal()` or `close()`. Tests for ConfirmDialog (and any component containing it) must mock these methods:
+
+```typescript
+beforeAll(() => {
+  HTMLDialogElement.prototype.showModal = vi.fn(function (this: HTMLDialogElement) {
+    this.setAttribute('open', '');
+  });
+  HTMLDialogElement.prototype.close = vi.fn(function (this: HTMLDialogElement) {
+    this.removeAttribute('open');
+  });
+});
+```
+
+- Mock must use `function()` (not arrow) for correct `this` binding
+- Escape key: test via `fireEvent(dialog, new Event('cancel'))` -- not `userEvent.keyboard('{Escape}')`, because the native `cancel` event is dialog-specific
+- Dialog queries: use `document.querySelector('dialog')` for the element, `screen.getByRole('dialog')` when it has `open` attribute
 
 ### Recharts Testing in jsdom
 
@@ -665,3 +735,8 @@ Use `import type` for type-only imports in test files. The `expectTypeOf` patter
 - Use React Context to pass state/dispatch to pages -- props are sufficient and more explicit. Each Route child receives `state`/`dispatch` directly from App.tsx's closure
 - Use wouter `to` prop instead of `href` on `<Link>` -- `href` is the idiomatic prop for wouter v3
 - Wrap routing components in tests without `memoryLocation` -- always use `memoryLocation` from `wouter/memory-location` for test isolation (avoids `window.location.hash` side effects between tests)
+- Dispatch removal actions directly from row components -- always go through the parent's `onRemoveRequest` callback to ensure ConfirmDialog is shown
+- Create one ConfirmDialog per row -- use a single ConfirmDialog per ConfigGenderSection with `pendingRemoval` state
+- Use `window.confirm()` for config page deletions -- use the native `<dialog>` ConfirmDialog component instead (provides better UX and is testable without `window.confirm` mocks)
+- Forget `HTMLDialogElement.prototype.showModal/close` mock in tests that render ConfirmDialog -- jsdom does not implement these methods
+- Use `userEvent.keyboard('{Escape}')` to test dialog Escape -- use `fireEvent(dialog, new Event('cancel'))` instead (tests the native cancel event listener)
