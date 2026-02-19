@@ -33,10 +33,13 @@ function truncate(str: string, max: number): string {
 /**
  * Grouped bar chart comparing male vs female employment by industry.
  *
- * Read-only visualization component following the PieChartPanel pattern:
- * - React.memo for render optimization
+ * Read-only visualization component:
+ * - React.memo skips re-renders when parent passes the same (throttled) references
  * - No internal state, no dispatch
  * - figure wrapper with sr-only data table for accessibility
+ *
+ * Throttling is handled by the parent (DashboardPage) via useThrottledValue,
+ * so memo's shallow comparison sees stable references between throttle ticks.
  */
 export const GenderBarChart = memo(function GenderBarChart({
   maleNode,
@@ -68,8 +71,8 @@ export const GenderBarChart = memo(function GenderBarChart({
           <YAxis tickFormatter={(value: number) => formatAbsoluteValue(value)} />
           <Tooltip content={<BarChartTooltip />} />
           <Legend />
-          <Bar dataKey="male" name="Чоловіки" fill={GENDER_COLORS.male} />
-          <Bar dataKey="female" name="Жінки" fill={GENDER_COLORS.female} />
+          <Bar dataKey="male" name="Чоловіки" fill={GENDER_COLORS.male} animationDuration={300} animationEasing="ease-out" />
+          <Bar dataKey="female" name="Жінки" fill={GENDER_COLORS.female} animationDuration={300} animationEasing="ease-out" />
         </BarChart>
       </ResponsiveContainer>
 

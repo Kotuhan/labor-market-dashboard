@@ -38,9 +38,6 @@ const SIZE_CONFIG: Record<ChartSize, { height: number; outerRadius: number }> =
     mini: { height: 200, outerRadius: 80 },
   };
 
-/** Animation duration in ms (resolved Q7: 300ms standard UI transition). */
-const ANIMATION_DURATION = 300;
-
 /**
  * Pie chart visualization panel for tree node data.
  *
@@ -48,8 +45,8 @@ const ANIMATION_DURATION = 300;
  * pie chart with custom tooltip and optional legend. Does not manage data
  * state or dispatch actions.
  *
- * Wrapped in React.memo to prevent re-renders when parent re-renders
- * but chart data has not changed.
+ * Throttling is handled by the parent (GenderSection) via useThrottledValue,
+ * so memo's shallow comparison sees stable references between throttle ticks.
  */
 export const PieChartPanel = memo(function PieChartPanel({
   nodes,
@@ -87,8 +84,7 @@ export const PieChartPanel = memo(function PieChartPanel({
                 cx="50%"
                 cy="50%"
                 outerRadius={config.outerRadius}
-                isAnimationActive={true}
-                animationDuration={ANIMATION_DURATION}
+                animationDuration={300}
                 animationEasing="ease-out"
               >
                 {data.map((entry) => (
