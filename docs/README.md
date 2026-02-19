@@ -39,6 +39,7 @@ See [workflow.md](workflow.md) for visual Mermaid diagrams of the task workflow.
 | task-006 | 2026-02-17 | Pie chart visualization components with Recharts |
 | task-007 | 2026-02-17 | Expandable tree panel UI for navigating labor market hierarchy |
 | task-008 | 2026-02-17 | Build dashboard layout with header controls, mode toggle, gender sections, and pie charts |
+| task-012 | 2026-02-19 | Gender comparison bar chart added to dashboard |
 <!-- Completed tasks logged here by PO Summary stage -->
 
 ## Task Directory

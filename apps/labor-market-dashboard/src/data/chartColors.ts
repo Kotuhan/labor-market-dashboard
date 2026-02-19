@@ -30,7 +30,11 @@ export const INDUSTRY_COLORS: Record<string, string> = {
   R: '#FACC15',     // yellow-400  -- Мистецтво, спорт
 };
 
-/** Gender colors matching PRD specification. */
+/**
+ * Gender colors matching PRD specification.
+ * Note: GENDER_COLORS.male (#3B82F6) is the same hex as INDUSTRY_COLORS.G (Торгівля).
+ * This is intentional — the bar chart uses GENDER_COLORS while pie charts use INDUSTRY_COLORS.
+ */
 export const GENDER_COLORS = {
   male: '#3B82F6',   // blue-500
   female: '#EC4899', // pink-500

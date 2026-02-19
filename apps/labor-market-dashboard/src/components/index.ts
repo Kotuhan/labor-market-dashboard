@@ -1,3 +1,6 @@
+export { BarChartTooltip } from './BarChartTooltip';
+export type { BarChartTooltipProps } from './BarChartTooltip';
+
 export { ChartLegend } from './ChartLegend';
 export type { ChartLegendProps, LegendItem } from './ChartLegend';
 
@@ -6,6 +9,9 @@ export type { ChartTooltipProps } from './ChartTooltip';
 
 export { DashboardHeader } from './DashboardHeader';
 export type { DashboardHeaderProps } from './DashboardHeader';
+
+export { GenderBarChart } from './GenderBarChart';
+export type { GenderBarChartProps } from './GenderBarChart';
 
 export { GenderSection } from './GenderSection';
 export type { GenderSectionProps } from './GenderSection';

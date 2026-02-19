@@ -13,7 +13,7 @@ Single-page application for interactive labor market modeling.
 |-----------|------------|---------|
 | App Shell | React 19 / Vite 6 | Component framework, fast HMR (per ADR-0001) |
 | State Management | React useReducer | Tree state via `treeReducer`, auto-balance logic (per ADR-0004) |
-| Visualization | Recharts | Animated pie charts with tooltips |
+| Visualization | Recharts | Pie charts (per-gender industry breakdown) and grouped bar chart (cross-gender comparison) with tooltips |
 | Styling | Tailwind CSS v4 | CSS-first config, `@tailwindcss/vite` plugin (per ADR-0002) |
 | Hosting | GitHub Pages | Static SPA, no backend |
 
@@ -127,15 +127,19 @@ Centralized TypeScript, ESLint, and Prettier configs shared across the monorepo.
 | Format Tests | `apps/labor-market-dashboard/src/__tests__/utils/format.test.ts` | 19 tests: formatAbsoluteValue + formatPercentage + formatPopulation edge cases | task-005, task-008 |
 | Slider Tests | `apps/labor-market-dashboard/src/__tests__/components/Slider.test.tsx` | 22 tests: rendering, range input, numeric input, lock toggle, a11y, prop sync | task-005 |
 | Chart Colors | `apps/labor-market-dashboard/src/data/chartColors.ts` | KVED-to-hex color palette (16 industries), gender colors, ghost/overflow/default colors | task-006 |
-| Chart Data Utils | `apps/labor-market-dashboard/src/utils/chartDataUtils.ts` | `toChartData()`, `getNodeColor()`, `generateSubcategoryColors()`, PieDataEntry interface | task-006 |
+| Chart Data Utils | `apps/labor-market-dashboard/src/utils/chartDataUtils.ts` | `toChartData()`, `getNodeColor()`, `generateSubcategoryColors()`, `toBarChartData()`, PieDataEntry and BarChartDataEntry interfaces | task-006, task-012 |
 | ChartTooltip | `apps/labor-market-dashboard/src/components/ChartTooltip.tsx` | Custom Recharts tooltip with Ukrainian formatting (reuses format.ts utilities) | task-006 |
 | ChartLegend | `apps/labor-market-dashboard/src/components/ChartLegend.tsx` | Scrollable legend with semantic `ul/li` markup and color swatches | task-006 |
 | PieChartPanel | `apps/labor-market-dashboard/src/components/PieChartPanel.tsx` | Main pie chart wrapper (React.memo, Recharts PieChart, size variants, ghost slice, sr-only table) | task-006 |
 | Chart Color Tests | `apps/labor-market-dashboard/src/__tests__/data/chartColors.test.ts` | 8 tests: palette completeness, valid hex, no duplicates | task-006 |
-| Chart Data Utils Tests | `apps/labor-market-dashboard/src/__tests__/utils/chartDataUtils.test.ts` | 16 tests: toChartData, getNodeColor, generateSubcategoryColors | task-006 |
+| Chart Data Utils Tests | `apps/labor-market-dashboard/src/__tests__/utils/chartDataUtils.test.ts` | 21 tests: toChartData, getNodeColor, generateSubcategoryColors, toBarChartData | task-006, task-012 |
 | ChartTooltip Tests | `apps/labor-market-dashboard/src/__tests__/components/ChartTooltip.test.tsx` | 5 tests: rendering, null states, ghost slice handling | task-006 |
 | ChartLegend Tests | `apps/labor-market-dashboard/src/__tests__/components/ChartLegend.test.tsx` | 5 tests: list items, labels, semantic markup, maxHeight | task-006 |
 | PieChartPanel Tests | `apps/labor-market-dashboard/src/__tests__/components/PieChartPanel.test.tsx` | 11 tests: accessibility, legend, free mode, size variants | task-006 |
+| GenderBarChart | `apps/labor-market-dashboard/src/components/GenderBarChart.tsx` | Grouped bar chart comparing male/female by industry (React.memo, Recharts BarChart, sr-only table) | task-012 |
+| BarChartTooltip | `apps/labor-market-dashboard/src/components/BarChartTooltip.tsx` | Custom bar chart tooltip showing both genders per industry (absolute + percentage) | task-012 |
+| GenderBarChart Tests | `apps/labor-market-dashboard/src/__tests__/components/GenderBarChart.test.tsx` | 4 tests: figure role, sr-only table rows, formatted values, empty children | task-012 |
+| BarChartTooltip Tests | `apps/labor-market-dashboard/src/__tests__/components/BarChartTooltip.test.tsx` | 4 tests: inactive null, empty payload null, gender rows, color swatches | task-012 |
 | ModeToggle | `apps/labor-market-dashboard/src/components/ModeToggle.tsx` | Auto/free balance mode toggle switch (role="switch", aria-checked, 59 lines) | task-008 |
 | ResetButton | `apps/labor-market-dashboard/src/components/ResetButton.tsx` | Reset button with browser confirm() guard (51 lines) | task-008 |
 | DashboardHeader | `apps/labor-market-dashboard/src/components/DashboardHeader.tsx` | Sticky header bar: h1 title, controlled population input, ModeToggle + ResetButton composition (109 lines) | task-008 |
@@ -258,11 +262,11 @@ All interactive dashboard components follow the controlled component pattern est
 
 ### Read-Only Visualization Pattern
 
-Visualization components (PieChartPanel, ChartTooltip, ChartLegend) follow a distinct pattern from interactive components:
+Visualization components (PieChartPanel, ChartTooltip, ChartLegend, GenderBarChart, BarChartTooltip) follow a distinct pattern from interactive components:
 
-- **No internal data state**: Receive `TreeNode[]` as props (`nodes`, not `children` -- React reserves `children`). No dispatch.
+- **No internal data state**: Receive tree data as props (`TreeNode[]` as `nodes` for pie charts; two `TreeNode` props for bar chart). No dispatch.
 - **`React.memo`**: Wrapped via named function pattern `memo(function ComponentName(...))` for devtools clarity. Prevents re-renders when parent re-renders but visualization data has not changed.
-- **Data transformation outside component**: Utility functions (e.g., `toChartData()`) in `utils/` convert tree data to chart-library-specific formats. Keeps mapping logic testable without React.
+- **Data transformation outside component**: Utility functions (`toChartData()` for pie, `toBarChartData()` for bar) in `utils/` convert tree data to chart-library-specific formats. Keeps mapping logic testable without React.
 - **Reuse formatting utilities**: Custom tooltip/legend components reuse `formatAbsoluteValue`/`formatPercentage` from `utils/format.ts` for Ukrainian number formatting.
 - **Accessibility**: `<figure role="img" aria-label={...}>` wrapper + `sr-only` data `<table>` for screen readers. Color swatches use `aria-hidden="true"`.
 
@@ -325,13 +329,15 @@ TreeRow renders a mini `PieChartPanel` for expanded nodes with children:
 
 ### Recharts Integration Convention
 
-Recharts 2.15.x is the charting library for all pie chart visualizations (per ADR-0005):
+Recharts 2.15.x is the charting library for all chart visualizations (per ADR-0005):
 
-- **Recharts components used**: `PieChart`, `Pie`, `Cell`, `Tooltip`, `ResponsiveContainer`
-- **Color mapping**: `<Cell fill={entry.color}>` requires hex strings -- use `INDUSTRY_COLORS` map from `src/data/chartColors.ts`, not CSS custom properties
-- **Custom tooltip**: `<Tooltip content={<ChartTooltip />}>` -- Recharts passes `active` and `payload` props automatically
+- **Pie chart components**: `PieChart`, `Pie`, `Cell`, `Tooltip`, `ResponsiveContainer`
+- **Bar chart components**: `BarChart`, `Bar`, `CartesianGrid`, `XAxis`, `YAxis`, `Tooltip`, `Legend`, `ResponsiveContainer`
+- **Color mapping (pie)**: `<Cell fill={entry.color}>` requires hex strings -- use `INDUSTRY_COLORS` map from `src/data/chartColors.ts`, not CSS custom properties
+- **Color mapping (bar)**: Uses `GENDER_COLORS` (blue/pink) for male/female bars, not `INDUSTRY_COLORS` -- bars are colored by gender, not by industry
+- **Custom tooltips**: `<Tooltip content={<ChartTooltip />}>` for pie charts; `<Tooltip content={<BarChartTooltip />}>` for bar charts. Recharts passes `active` and `payload` props automatically.
 - **Animation**: 300ms with `ease-out` easing. Recharts interrupts previous animations gracefully during rapid updates.
-- **Ghost slice (free mode)**: When percentages sum < 100%, a gray "Нерозподілено" entry is appended to chart data. When > 100%, an overflow badge is shown. Ghost slices excluded from legend and sr-only table.
+- **Ghost slice (free mode, pie only)**: When percentages sum < 100%, a gray "Нерозподілено" entry is appended to chart data. When > 100%, an overflow badge is shown. Ghost slices excluded from legend and sr-only table.
 - **Testing**: `ResizeObserver` must be mocked in jsdom. Tests focus on DOM structure (figure, ARIA, data table, legend), not SVG geometry.
 
 ## Known Limitations

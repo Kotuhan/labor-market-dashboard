@@ -35,7 +35,7 @@ apps/
   labor-market-dashboard/    # Main React SPA (Vite + React + TS)
     src/
       __tests__/             # Tests mirroring src/ structure
-      components/            # DashboardPage, DashboardHeader, GenderSection, ModeToggle, ResetButton, Slider, PieChartPanel, ChartTooltip, ChartLegend, TreePanel, TreeRow
+      components/            # DashboardHeader, GenderSection, ModeToggle, ResetButton, Slider, PieChartPanel, GenderBarChart, BarChartTooltip, ChartTooltip, ChartLegend, TreePanel, TreeRow
         layout/              # AppLayout (shell), Sidebar (collapsible nav) -- wouter routing
       data/                  # defaultTree.ts, dataHelpers.ts, chartColors.ts — Ukraine labor market defaults + chart colors
       hooks/                 # useTreeState (useReducer-based state management)
@@ -155,11 +155,11 @@ All apps extend shared configs from `packages/config/` (see [packages/config/CLA
 - **Page components**: DashboardPage extracts the former App.tsx content (DashboardHeader + 2 GenderSections). Future pages (ConfigPage) follow the same `{state, dispatch}` props pattern.
 - **Controlled components**: No internal value state -- receive percentage/values as props, dispatch actions upward
 - **Minimal local state**: Only for input fields needing partial-typing support (string state synced from props via `useEffect`). Pattern used by Slider and DashboardHeader (population input).
-- **Read-only visualization**: Chart components receive `TreeNode[]` as `nodes` prop, render only, no dispatch. Use `React.memo` for performance.
+- **Read-only visualization**: Chart components (pie + bar) receive data as props, render only, no dispatch. Use `React.memo` for performance. Pie charts use `nodes: TreeNode[]`; bar chart uses `maleNode` + `femaleNode` props.
 - **Layout components**: `components/layout/` subdirectory contains AppLayout (flex shell with local `isSidebarOpen` state) and Sidebar (collapsible nav with wouter `Link` + `useLocation` for active styling). Layout has its own barrel (`layout/index.ts`) re-exported from the main barrel.
 - **Section container**: GenderSection pairs TreePanel + PieChartPanel per gender. TreePanel uses single-gender API (`genderNode` prop, not full tree root).
 - **Container + recursive child**: TreePanel (container, manages UI-only expand/collapse state via `useState<Set<string>>`) + TreeRow (recursive, `React.memo`, renders mini pie charts for expanded nodes).
-- **Barrel exports**: `components/index.ts` exports component + `export type` for props interface (13 components including DashboardPage, AppLayout, Sidebar)
+- **Barrel exports**: `components/index.ts` exports component + `export type` for props interface (15 dashboard + 6 config components + layout re-exports)
 - **Touch targets**: All interactive elements >= 44x44px (WCAG 2.5.5)
 - **Heading hierarchy**: `<h1>` in DashboardHeader (title) -> `<h2>` in TreePanel (gender sections). Required by WCAG 1.3.1.
 - See [apps/labor-market-dashboard/CLAUDE.md](apps/labor-market-dashboard/CLAUDE.md) for full details

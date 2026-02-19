@@ -11,10 +11,11 @@ export type { PercentageUpdate } from './calculations';
 export {
   generateSubcategoryColors,
   getNodeColor,
+  toBarChartData,
   toChartData,
 } from './chartDataUtils';
 
-export type { PieDataEntry } from './chartDataUtils';
+export type { BarChartDataEntry, PieDataEntry } from './chartDataUtils';
 
 export { formatAbsoluteValue, formatPercentage, formatPopulation } from './format';
 

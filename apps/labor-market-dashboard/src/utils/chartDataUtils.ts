@@ -1,8 +1,10 @@
 /**
- * Data transformation utilities for Recharts pie chart consumption.
+ * Data transformation utilities for Recharts chart consumption.
  *
- * Converts TreeNode children into PieDataEntry arrays with color mapping,
- * ghost slice logic for free mode, and subcategory color generation.
+ * Converts TreeNode children into chart-compatible data arrays:
+ * - PieDataEntry for pie charts (with color mapping, ghost slice logic)
+ * - BarChartDataEntry for grouped bar charts (male/female industry comparison)
+ * - Subcategory color generation for mini pie charts
  */
 
 import { DEFAULT_NODE_COLOR, GHOST_SLICE_COLOR } from '@/data/chartColors';
@@ -89,6 +91,83 @@ export function toChartData(
         absoluteValue: 0,
         nodeId: 'ghost',
         isGhost: true,
+      });
+    }
+  }
+
+  return entries;
+}
+
+/** Single data point for the gender comparison bar chart. */
+export interface BarChartDataEntry {
+  /** Ukrainian industry label (for X-axis) */
+  industry: string;
+  /** KVED code (for stable identification) */
+  kvedCode: string;
+  /** Male absolute value */
+  male: number;
+  /** Female absolute value */
+  female: number;
+  /** Male percentage of male gender total */
+  malePercentage: number;
+  /** Female percentage of female gender total */
+  femalePercentage: number;
+}
+
+/**
+ * Transform two gender nodes into bar chart data by matching industries via KVED code.
+ *
+ * Iterates male industries first (preserving default ordering), then appends any
+ * female-only industries. Missing KVED matches get 0 value/percentage fallbacks.
+ *
+ * @param maleNode - Male gender tree node
+ * @param femaleNode - Female gender tree node
+ * @returns Array of BarChartDataEntry for Recharts BarChart consumption
+ */
+export function toBarChartData(
+  maleNode: TreeNode,
+  femaleNode: TreeNode,
+): BarChartDataEntry[] {
+  // Build female lookup by KVED code
+  const femaleByKved = new Map<string, TreeNode>();
+  for (const child of femaleNode.children) {
+    if (child.kvedCode) {
+      femaleByKved.set(child.kvedCode, child);
+    }
+  }
+
+  const entries: BarChartDataEntry[] = [];
+  const usedKvedCodes = new Set<string>();
+
+  // Iterate male industries (primary ordering)
+  for (const maleChild of maleNode.children) {
+    const kved = maleChild.kvedCode ?? maleChild.id;
+    usedKvedCodes.add(kved);
+    const femaleChild = maleChild.kvedCode
+      ? femaleByKved.get(maleChild.kvedCode)
+      : undefined;
+
+    entries.push({
+      industry: maleChild.label,
+      kvedCode: kved,
+      male: maleChild.absoluteValue,
+      female: femaleChild?.absoluteValue ?? 0,
+      malePercentage: maleChild.percentage,
+      femalePercentage: femaleChild?.percentage ?? 0,
+    });
+  }
+
+  // Append any female-only industries
+  for (const femaleChild of femaleNode.children) {
+    const kved = femaleChild.kvedCode ?? femaleChild.id;
+    if (!usedKvedCodes.has(kved)) {
+      entries.push({
+        industry: femaleChild.label,
+        kvedCode: kved,
+        male: 0,
+        female: femaleChild.absoluteValue,
+        malePercentage: 0,
+        femalePercentage: femaleChild.percentage,
       });
     }
   }

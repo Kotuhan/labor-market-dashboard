@@ -44,10 +44,11 @@ This decision was made during TL design (Q1 resolution) and validated during arc
 
 ## More Information
 
-- Recharts 2.x components used: `PieChart`, `Pie`, `Cell`, `Tooltip`, `ResponsiveContainer`
-- Color mapping requires hex strings (not CSS custom properties) via `<Cell fill={color}>`
+- Recharts 2.x pie chart components: `PieChart`, `Pie`, `Cell`, `Tooltip`, `ResponsiveContainer`
+- Recharts 2.x bar chart components (added task-012): `BarChart`, `Bar`, `CartesianGrid`, `XAxis`, `YAxis`, `Tooltip`, `Legend`, `ResponsiveContainer`
+- Color mapping requires hex strings (not CSS custom properties) via `<Cell fill={color}>` (pie) or `<Bar fill={color}>` (bar)
 - Animation: 300ms duration, `ease-out` easing, `isAnimationActive={true}`
 - `ResizeObserver` mock required for testing Recharts components in jsdom
-- Color palette: Fixed KVED-code-to-hex mapping in `src/data/chartColors.ts` (16 Tailwind palette colors)
+- Color palette: Fixed KVED-code-to-hex mapping in `src/data/chartColors.ts` (16 Tailwind palette colors) for pie charts; `GENDER_COLORS` for bar charts
 - If Recharts 3.x later removes the Redux dependency or provides a lightweight build, this ADR should be re-evaluated
 - Related: [ADR-0001](adr-0001-adopt-react-vite-typescript-frontend-stack.md) (React 19), [ADR-0004](adr-0004-use-react-usereducer-for-state-management.md) (useReducer over Zustand -- same lightweight philosophy)

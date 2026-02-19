@@ -36,7 +36,15 @@ apps/labor-market-dashboard/
     index.css             # Tailwind entry + custom range input CSS
     vite-env.d.ts         # Vite client type declarations
     components/
-      DashboardPage.tsx   # Main dashboard view (extracted from former App.tsx -- DashboardHeader + 2 GenderSections)
+      DashboardPage.tsx   # Main dashboard view (GenderBarChart + DashboardHeader + 2 GenderSections)
+      config/
+        ConfirmDialog.tsx       # Native <dialog> modal for destructive action confirmation
+        AddNodeForm.tsx         # Inline form for adding industries/subcategories
+        ConfigSubcategoryRow.tsx # Single subcategory row (label + percentage + remove)
+        ConfigIndustryRow.tsx   # Industry row with expand/collapse + subcategory children
+        ConfigGenderSection.tsx # Gender section (industry rows + add form + shared ConfirmDialog)
+        ConfigPage.tsx          # Config page composition root (2-column gender grid)
+        index.ts                # Config barrel: 6 components + props interfaces
       layout/
         AppLayout.tsx     # Flex layout shell (sidebar + content area, local isSidebarOpen state)
         Sidebar.tsx       # Collapsible nav (wouter Link, useLocation for active styling)
@@ -47,11 +55,13 @@ apps/labor-market-dashboard/
       ResetButton.tsx     # Reset button with browser confirm() guard
       Slider.tsx          # Interactive slider (controlled, range + numeric + lock)
       PieChartPanel.tsx   # Pie chart visualization (React.memo, Recharts, read-only)
+      GenderBarChart.tsx  # Grouped bar chart comparing male/female by industry (React.memo, read-only)
+      BarChartTooltip.tsx # Custom tooltip for bar chart (shows both genders per industry)
       ChartTooltip.tsx    # Custom tooltip for pie chart slices (Ukrainian formatting)
       ChartLegend.tsx     # Scrollable legend with color swatches (semantic ul/li)
       TreePanel.tsx       # Single-gender tree container (expand/collapse state, deviation warnings)
       TreeRow.tsx         # Recursive tree row (React.memo, chevron, indentation, Slider, mini pie charts)
-      index.ts            # Barrel: 13 components (10 original + DashboardPage + layout re-exports) + export type for props interfaces
+      index.ts            # Main barrel: 15 dashboard + 6 config + layout re-exports + export type for props interfaces
     types/
       tree.ts             # Core data model: TreeNode, GenderSplit, BalanceMode, DashboardState
       actions.ts          # TreeAction discriminated union (5 action types for useReducer)
@@ -65,7 +75,7 @@ apps/labor-market-dashboard/
       treeUtils.ts        # Immutable tree traversal/update helpers, SiblingInfo interface
       calculations.ts     # Auto-balance, normalization, recalc, deviation, lock guard
       format.ts           # Ukrainian number formatting (formatAbsoluteValue, formatPercentage, formatPopulation)
-      chartDataUtils.ts   # TreeNode-to-Recharts data transform, ghost slice logic, subcategory colors
+      chartDataUtils.ts   # TreeNode-to-Recharts data transforms (pie + bar chart), ghost slice logic, subcategory colors
       index.ts            # Barrel re-export (value + type exports)
     hooks/
       useTreeState.ts     # useReducer-based state management (treeReducer + useTreeState hook)
@@ -82,7 +92,7 @@ apps/labor-market-dashboard/
         treeUtils.test.ts    # 15 tests: find, update, immutability, sibling info
         calculations.test.ts # 28 tests: auto-balance, normalize, recalc, deviation, lock guard
         format.test.ts       # 19 tests: formatAbsoluteValue + formatPercentage + formatPopulation
-        chartDataUtils.test.ts # 16 tests: toChartData, getNodeColor, generateSubcategoryColors
+        chartDataUtils.test.ts # 21 tests: toChartData, getNodeColor, generateSubcategoryColors, toBarChartData
       components/
         DashboardHeader.test.tsx # 16 tests: title, population input dispatch/revert, ModeToggle/ResetButton composition
         GenderSection.test.tsx # 7 tests: TreePanel + PieChartPanel pairing, aria-labels, industry data
@@ -95,6 +105,11 @@ apps/labor-market-dashboard/
         TreeRow.test.tsx       # 32 tests: rendering, chevron, expand/collapse, indent, Slider, deviation warnings, mini pie charts
         TreePanel.test.tsx     # 16 tests: single-gender API, industry nodes, expand/collapse, deviation warnings, a11y
         DashboardPage.test.tsx # 7 tests: header, population input, gender sections, pie charts, main area
+        config/
+          ConfirmDialog.test.tsx       # 7 tests: open/close, confirm/cancel, Escape, a11y
+          AddNodeForm.test.tsx         # 9 tests: submit dispatch, empty guard, clear on submit
+          ConfigPage.test.tsx          # 6 tests: heading, 2 gender sections, page structure
+          ConfigGenderSection.test.tsx # 14 tests: industry rows, expand, add/remove, dialog flow
         layout/
           Sidebar.test.tsx     # 13 tests: nav landmark, active state, toggle, keyboard nav, a11y
       hooks/
@@ -214,14 +229,15 @@ useTreeState (thin hook)  -->  treeReducer (exported, testable)  -->  pure utili
 
 ### Utils Module (`src/utils/`)
 
-Four files with distinct responsibilities:
+Five files with distinct responsibilities:
 
 - **`treeUtils.ts`**: Tree traversal, immutable updates, and tree mutations. Functions: `findNodeById`, `findParentById`, `updateNodeInTree`, `updateChildrenInTree`, `collectSiblingInfo`, `generateUniqueId`, `addChildToParent`, `removeChildFromParent`. Also defines `SiblingInfo` interface.
 - **`calculations.ts`**: Pure mathematical functions (`autoBalance`, `normalizeGroup`, `recalcAbsoluteValues`, `getSiblingDeviation`, `canToggleLock`). Also defines `PercentageUpdate` interface.
+- **`chartDataUtils.ts`**: Chart data transforms. `toChartData()` for pie charts (PieDataEntry[], ghost slice, color mapping). `toBarChartData()` for grouped bar charts (matches industries by KVED code across genders, 0-fallback for unmatched). `generateSubcategoryColors()` for mini pie shading. Also defines `PieDataEntry` and `BarChartDataEntry` interfaces.
 - **`slugify.ts`**: Ukrainian-to-Latin transliteration (`slugify()`). Converts Ukrainian labels to kebab-case ASCII slugs for node IDs (e.g., "Кібербезпека" → "kiberbezpeka").
 - **`format.ts`**: Number formatting utilities (already documented above).
 
-Interfaces (`SiblingInfo`, `PercentageUpdate`) are co-located with the functions that produce/consume them in `utils/`, not in `types/`. The barrel `utils/index.ts` re-exports them with `export type { ... }`.
+Interfaces (`SiblingInfo`, `PercentageUpdate`, `PieDataEntry`, `BarChartDataEntry`) are co-located with the functions that produce/consume them in `utils/`, not in `types/`. The barrel `utils/index.ts` re-exports them with `export type { ... }`.
 
 ### Tree Mutation Helpers (`src/utils/treeUtils.ts`)
 
@@ -290,14 +306,16 @@ export type { PercentageUpdate, SiblingInfo } from './...';
 
 ### Component Categories
 
-Components fall into seven categories:
+Components fall into nine categories:
 1. **Router boundary** (App): Calls `useTreeState()` above `<Router>`, wraps routes in `AppLayout`. No business logic, no tests of its own.
-2. **Page components** (DashboardPage, future ConfigPage): Receive `{ state, dispatch }` props, compose section-level components for a full page view.
+2. **Page components** (DashboardPage, ConfigPage): Receive `{ state, dispatch }` props, compose section-level components for a full page view.
 3. **Layout shell** (AppLayout, Sidebar): AppLayout is a flex shell (sidebar + content area) with local `isSidebarOpen` state. Sidebar is a controlled collapsible nav using wouter `Link`/`useLocation`.
 4. **Composite header** (DashboardHeader): Composes leaf controls (ModeToggle, ResetButton) with a controlled population input. Follows the Slider controlled-input pattern (local string state, useEffect sync, commit on blur/Enter).
 5. **Interactive leaf controls** (Slider, ModeToggle, ResetButton): Controlled, dispatch actions upward, minimal local state. ModeToggle uses `role="switch"` + `aria-checked`. ResetButton uses `window.confirm()` guard.
-6. **Read-only visualization** (PieChartPanel, ChartTooltip, ChartLegend): Receive data as props, no internal state, no dispatch.
-7. **Section containers** (GenderSection, TreePanel + TreeRow): GenderSection pairs TreePanel + PieChartPanel per gender. TreePanel manages UI-only expand/collapse state and deviation warnings. TreeRow is recursive with `React.memo`, renders mini subcategory pie charts for expanded nodes.
+6. **Read-only pie visualization** (PieChartPanel, ChartTooltip, ChartLegend): Receive data as props, no internal state, no dispatch.
+7. **Read-only bar visualization** (GenderBarChart, BarChartTooltip): Cross-gender comparison chart. Receives both gender nodes, matches industries by KVED code. Same read-only pattern as pie charts (React.memo, figure+sr-only table, no dispatch).
+8. **Section containers** (GenderSection, TreePanel + TreeRow): GenderSection pairs TreePanel + PieChartPanel per gender. TreePanel manages UI-only expand/collapse state and deviation warnings. TreeRow is recursive with `React.memo`, renders mini subcategory pie charts for expanded nodes.
+9. **Config components** (ConfigPage, ConfigGenderSection, ConfigIndustryRow, ConfigSubcategoryRow, AddNodeForm, ConfirmDialog): CRUD interface for managing industries and subcategories. See dedicated "Config Components" section below.
 
 ### Slider Component Pattern
 
@@ -322,6 +340,18 @@ The PieChartPanel + ChartTooltip + ChartLegend form the **read-only visualizatio
 - **Size variants**: `size` prop (`'standard'` = 300px, `'mini'` = 200px) controls chart height and radius.
 - **Accessibility**: `<figure role="img" aria-label={...}>` wrapper + `sr-only` data `<table>` fallback for screen readers. Color swatches use `aria-hidden="true"`.
 
+### Bar Chart Visualization Pattern
+
+The GenderBarChart + BarChartTooltip form a **cross-gender comparison visualization**:
+
+- **Read-only**: Receives `maleNode` + `femaleNode` (two TreeNode props). No dispatch, no internal state. `React.memo` wrapped.
+- **Data transformation**: `toBarChartData()` in `utils/chartDataUtils.ts` matches industries by KVED code across genders (not by array index). Male ordering is primary; female-only industries appended at end. Missing matches get 0 fallbacks.
+- **X-axis labels**: 45-degree rotation (`angle={-45}`) + 12-char truncation via `truncate()` helper for long Ukrainian labels. `interval={0}` forces all labels visible.
+- **BarChartTooltip vs ChartTooltip**: BarChartTooltip shows BOTH genders per industry (absolute value + percentage each). ChartTooltip (pie) shows a single slice. Different component, not shared.
+- **Recharts components**: `BarChart`, `Bar`, `CartesianGrid`, `XAxis`, `YAxis`, `Tooltip`, `Legend`, `ResponsiveContainer`
+- **Colors**: Uses `GENDER_COLORS` (blue/pink), not `INDUSTRY_COLORS` -- each bar pair shares the same X-axis industry but is colored by gender.
+- **Accessibility**: Same pattern as PieChartPanel -- `<figure role="img" aria-label>` wrapper + sr-only `<table>` with all data rows.
+
 ### Router Boundary Pattern (App.tsx)
 
 App.tsx is the **router boundary** -- it calls `useTreeState()` ABOVE the `<Router>` so state persists across route transitions. Structure:
@@ -336,7 +366,7 @@ App.tsx
           <DashboardPage state dispatch />
         </Route>
         <Route path="/config">
-          placeholder (subtask 11.3 replaces with ConfigPage)
+          <ConfigPage state dispatch />
         </Route>
       </Switch>
     </AppLayout>
@@ -351,11 +381,11 @@ App.tsx
 
 ### DashboardPage Pattern
 
-DashboardPage extracts the former App.tsx content into a dedicated page component:
-- Receives `{ state, dispatch }` props -- same interface future pages (ConfigPage) will use
-- Renders `DashboardHeader` (sticky) + `<main>` with 2 `GenderSection` instances
+DashboardPage is a composition-only page component:
+- Receives `{ state, dispatch }` props -- same interface as ConfigPage
+- **Layout (3 sections)**: `DashboardHeader` (sticky) + `<main>` containing `GenderBarChart` (full-width) above a 2-column grid of `GenderSection` instances
 - Uses Fragment (`<>...</>`) as root (no wrapper div -- AppLayout provides background and scroll container)
-- Male: `state.tree.children[0]`, Female: `state.tree.children[1]`
+- Male: `state.tree.children[0]`, Female: `state.tree.children[1]` -- extracted to local variables for reuse across GenderBarChart and GenderSections
 
 ### Layout Components Pattern (`components/layout/`)
 
@@ -420,7 +450,7 @@ TreeRow renders a mini `PieChartPanel` for expanded nodes with children:
 ### Recharts Integration
 
 - **Version**: Recharts 2.15.x (not 3.x -- 3.x adds `@reduxjs/toolkit`, `immer`, `react-redux` which conflicts with the project's lightweight `useReducer` approach)
-- **Recharts components used**: `PieChart`, `Pie`, `Cell`, `Tooltip`, `ResponsiveContainer`
+- **Recharts components used**: `PieChart`, `Pie`, `Cell`, `Tooltip`, `ResponsiveContainer`, `BarChart`, `Bar`, `CartesianGrid`, `XAxis`, `YAxis`, `Legend`
 - **Color mapping**: `<Cell fill={entry.color}>` requires hex strings, not CSS custom properties
 - **Custom tooltip**: `<Tooltip content={<ChartTooltip />}>` -- Recharts passes `active` and `payload` props automatically
 - **Animation**: 300ms with `ease-out` easing. `isAnimationActive={true}`. Recharts interrupts previous animations gracefully during rapid updates.
@@ -429,7 +459,7 @@ TreeRow renders a mini `PieChartPanel` for expanded nodes with children:
 ### Color Palette (`src/data/chartColors.ts`)
 
 - `INDUSTRY_COLORS`: Fixed KVED-code-to-hex mapping (16 colors from Tailwind palette). Same industry = same color across male/female charts.
-- `GENDER_COLORS`: `{ male: '#3B82F6', female: '#EC4899' }` (blue-500, pink-500)
+- `GENDER_COLORS`: `{ male: '#3B82F6', female: '#EC4899' }` (blue-500, pink-500). Note: `male` hex collides with `INDUSTRY_COLORS.G` (Торгівля) -- intentional, since bar chart uses gender colors while pie charts use industry colors
 - `GHOST_SLICE_COLOR`: `#E2E8F0` (slate-200) for free mode unallocated percentage
 - `OVERFLOW_INDICATOR_COLOR`: `#FCA5A5` (red-300)
 - `DEFAULT_NODE_COLOR`: `#94A3B8` (slate-400) fallback
@@ -442,7 +472,7 @@ export { Slider } from './Slider';
 export type { SliderProps } from './Slider';
 ```
 
-Value export for the component, `export type` for the props interface. All 13 components follow this pattern: ChartLegend, ChartTooltip, DashboardHeader, DashboardPage, GenderSection, ModeToggle, PieChartPanel, ResetButton, Slider, TreePanel, TreeRow + layout re-exports (AppLayout, Sidebar). Layout components also have their own barrel at `components/layout/index.ts`.
+Value export for the component, `export type` for the props interface. All 15 dashboard components follow this pattern: BarChartTooltip, ChartLegend, ChartTooltip, DashboardHeader, DashboardPage, GenderBarChart, GenderSection, ModeToggle, PieChartPanel, ResetButton, Slider, TreePanel, TreeRow + layout re-exports (AppLayout, Sidebar). Config components (6) are re-exported from `components/config/`. Layout components also have their own barrel at `components/layout/index.ts`.
 
 ## Format Utility (`src/utils/format.ts`)
 
@@ -493,6 +523,8 @@ src/utils/treeUtils.ts         -->  src/__tests__/utils/treeUtils.test.ts
 src/utils/calculations.ts      -->  src/__tests__/utils/calculations.test.ts
 src/utils/format.ts               -->  src/__tests__/utils/format.test.ts
 src/utils/chartDataUtils.ts    -->  src/__tests__/utils/chartDataUtils.test.ts
+src/components/GenderBarChart.tsx -->  src/__tests__/components/GenderBarChart.test.tsx
+src/components/BarChartTooltip.tsx --> src/__tests__/components/BarChartTooltip.test.tsx
 src/components/DashboardHeader.tsx -->  src/__tests__/components/DashboardHeader.test.tsx
 src/components/GenderSection.tsx  -->  src/__tests__/components/GenderSection.test.tsx
 src/components/ModeToggle.tsx     -->  src/__tests__/components/ModeToggle.test.tsx
@@ -504,6 +536,10 @@ src/components/ChartLegend.tsx    -->  src/__tests__/components/ChartLegend.test
 src/components/TreePanel.tsx      -->  src/__tests__/components/TreePanel.test.tsx
 src/components/TreeRow.tsx        -->  src/__tests__/components/TreeRow.test.tsx
 src/components/DashboardPage.tsx  -->  src/__tests__/components/DashboardPage.test.tsx
+src/components/config/ConfirmDialog.tsx       -->  src/__tests__/components/config/ConfirmDialog.test.tsx
+src/components/config/AddNodeForm.tsx         -->  src/__tests__/components/config/AddNodeForm.test.tsx
+src/components/config/ConfigPage.tsx          -->  src/__tests__/components/config/ConfigPage.test.tsx
+src/components/config/ConfigGenderSection.tsx -->  src/__tests__/components/config/ConfigGenderSection.test.tsx
 src/components/layout/Sidebar.tsx -->  src/__tests__/components/layout/Sidebar.test.tsx
 src/hooks/useTreeState.ts      -->  src/__tests__/hooks/useTreeState.test.ts
 ```

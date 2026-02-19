@@ -6,11 +6,16 @@ import type { TreeNode } from '@/types';
 import {
   generateSubcategoryColors,
   getNodeColor,
+  toBarChartData,
   toChartData,
 } from '@/utils/chartDataUtils';
 
+/** Male gender node. */
+const maleNode = defaultTree.children[0];
+/** Female gender node. */
+const femaleNode = defaultTree.children[1];
 /** Male gender node children (16 industries). */
-const maleChildren = defaultTree.children[0].children;
+const maleChildren = maleNode.children;
 
 /** Helper: create a minimal TreeNode for testing. */
 function makeNode(overrides?: Partial<TreeNode>): TreeNode {
@@ -167,5 +172,71 @@ describe('generateSubcategoryColors', () => {
     for (const color of result) {
       expect(color).toMatch(hexPattern);
     }
+  });
+});
+
+// -------------------------------------------------------
+// toBarChartData tests
+// -------------------------------------------------------
+describe('toBarChartData', () => {
+  it('returns 16 entries for default tree (one per industry)', () => {
+    const result = toBarChartData(maleNode, femaleNode);
+    expect(result).toHaveLength(16);
+  });
+
+  it('returns correct male and female absolute values for first industry', () => {
+    const result = toBarChartData(maleNode, femaleNode);
+    const first = result[0];
+    // Values should match the first male industry's absoluteValue
+    expect(first.male).toBe(maleNode.children[0].absoluteValue);
+    // And the corresponding female industry matched by KVED code
+    const kved = maleNode.children[0].kvedCode;
+    const femaleMatch = femaleNode.children.find((c) => c.kvedCode === kved);
+    expect(first.female).toBe(femaleMatch?.absoluteValue ?? 0);
+  });
+
+  it('returns correct percentage values', () => {
+    const result = toBarChartData(maleNode, femaleNode);
+    const first = result[0];
+    expect(first.malePercentage).toBe(maleNode.children[0].percentage);
+    const kved = maleNode.children[0].kvedCode;
+    const femaleMatch = femaleNode.children.find((c) => c.kvedCode === kved);
+    expect(first.femalePercentage).toBe(femaleMatch?.percentage ?? 0);
+  });
+
+  it('falls back to 0 when KVED code is missing in one gender', () => {
+    // Create a male node with an industry that has no female match
+    const customMale = makeNode({
+      id: 'gender-male',
+      label: 'Чоловіки',
+      children: [
+        makeNode({ id: 'male-custom', label: 'Custom', kvedCode: 'ZZ', absoluteValue: 5000, percentage: 100 }),
+      ],
+    });
+    const customFemale = makeNode({
+      id: 'gender-female',
+      label: 'Жінки',
+      children: [
+        makeNode({ id: 'female-a', label: 'Agriculture', kvedCode: 'A', absoluteValue: 3000, percentage: 100 }),
+      ],
+    });
+
+    const result = toBarChartData(customMale, customFemale);
+    // Should have 2 entries: ZZ (male-only) + A (female-only)
+    expect(result).toHaveLength(2);
+    expect(result[0].kvedCode).toBe('ZZ');
+    expect(result[0].male).toBe(5000);
+    expect(result[0].female).toBe(0);
+    expect(result[1].kvedCode).toBe('A');
+    expect(result[1].male).toBe(0);
+    expect(result[1].female).toBe(3000);
+  });
+
+  it('preserves industry order from male node', () => {
+    const result = toBarChartData(maleNode, femaleNode);
+    const kvedOrder = result.map((e) => e.kvedCode);
+    const maleKvedOrder = maleNode.children.map((c) => c.kvedCode ?? c.id);
+    // First 16 entries should match male industry order
+    expect(kvedOrder).toEqual(maleKvedOrder);
   });
 });
