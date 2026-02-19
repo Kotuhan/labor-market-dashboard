@@ -27,3 +27,10 @@ export type { TreePanelProps } from './TreePanel';
 
 export { TreeRow } from './TreeRow';
 export type { TreeRowProps } from './TreeRow';
+
+export { DashboardPage } from './DashboardPage';
+export type { DashboardPageProps } from './DashboardPage';
+
+// Layout components
+export { AppLayout, Sidebar } from './layout';
+export type { AppLayoutProps, SidebarProps } from './layout';

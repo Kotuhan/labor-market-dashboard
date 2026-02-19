@@ -127,3 +127,12 @@
   - 11.3-config-page: ConfirmDialog, AddNodeForm, row components, ConfigGenderSection, ConfigPage
   - 11.4-integration-polish: Dynamic colors, TreePanel auto-expand, barrel exports, final verification
 - **Next stage**: decomposed (subtask workflow begins)
+
+---
+
+## 2026-02-19 01:20 - Subtask 11.1 Complete
+
+- **Subtask**: 11.1-core-infrastructure
+- **Commit**: 33ed8dd
+- **Summary**: Installed wouter, created slugify utility, added 3 tree mutation helpers, extended TreeAction with 4 new types, implemented 4 reducer handlers, created ADR-0006. 323 tests pass, build ~176KB.
+- **Remaining subtasks**: 3 of 4

@@ -35,7 +35,8 @@ apps/
   labor-market-dashboard/    # Main React SPA (Vite + React + TS)
     src/
       __tests__/             # Tests mirroring src/ structure
-      components/            # DashboardHeader, GenderSection, ModeToggle, ResetButton, Slider, PieChartPanel, ChartTooltip, ChartLegend, TreePanel, TreeRow
+      components/            # DashboardPage, DashboardHeader, GenderSection, ModeToggle, ResetButton, Slider, PieChartPanel, ChartTooltip, ChartLegend, TreePanel, TreeRow
+        layout/              # AppLayout (shell), Sidebar (collapsible nav) -- wouter routing
       data/                  # defaultTree.ts, dataHelpers.ts, chartColors.ts — Ukraine labor market defaults + chart colors
       hooks/                 # useTreeState (useReducer-based state management)
       types/                 # TreeNode, GenderSplit, BalanceMode, DashboardState, TreeAction
@@ -124,6 +125,7 @@ All apps extend shared configs from `packages/config/` (see [packages/config/CLA
 - **Test setup file**: `src/__tests__/setup.ts` imports `@testing-library/jest-dom/vitest` (note the `/vitest` entry point)
 - **Vitest v3 mock syntax**: `vi.fn<(arg: Type) => ReturnType>()` -- NOT the v2 tuple style `vi.fn<[Type], ReturnType>()`
 - **ResizeObserver mock**: Required for Recharts `ResponsiveContainer` in jsdom -- see app CLAUDE.md for the mock pattern
+- **wouter test isolation**: Use `memoryLocation` from `wouter/memory-location` to create in-memory location hooks for routing tests -- avoids `window.location.hash` dependency. Wrap component in `<Router hook={hook}>` where `hook` comes from `memoryLocation({ path: '/' })`
 
 ### Data Conventions
 
@@ -149,13 +151,15 @@ All apps extend shared configs from `packages/config/` (see [packages/config/CLA
 
 ### Component Pattern
 
-- **Composition root**: App.tsx wires `useTreeState()` and distributes state/dispatch to children. No business logic, no tests of its own.
+- **Router boundary**: App.tsx is the router boundary -- calls `useTreeState()` ABOVE `<Router>` so state persists across route transitions. Uses `<Router hook={useHashLocation}>` + `<Switch>` from wouter. AppLayout (sidebar + content shell) wraps all routes. Pages receive `state`/`dispatch` via props (no React Context).
+- **Page components**: DashboardPage extracts the former App.tsx content (DashboardHeader + 2 GenderSections). Future pages (ConfigPage) follow the same `{state, dispatch}` props pattern.
 - **Controlled components**: No internal value state -- receive percentage/values as props, dispatch actions upward
 - **Minimal local state**: Only for input fields needing partial-typing support (string state synced from props via `useEffect`). Pattern used by Slider and DashboardHeader (population input).
 - **Read-only visualization**: Chart components receive `TreeNode[]` as `nodes` prop, render only, no dispatch. Use `React.memo` for performance.
+- **Layout components**: `components/layout/` subdirectory contains AppLayout (flex shell with local `isSidebarOpen` state) and Sidebar (collapsible nav with wouter `Link` + `useLocation` for active styling). Layout has its own barrel (`layout/index.ts`) re-exported from the main barrel.
 - **Section container**: GenderSection pairs TreePanel + PieChartPanel per gender. TreePanel uses single-gender API (`genderNode` prop, not full tree root).
 - **Container + recursive child**: TreePanel (container, manages UI-only expand/collapse state via `useState<Set<string>>`) + TreeRow (recursive, `React.memo`, renders mini pie charts for expanded nodes).
-- **Barrel exports**: `components/index.ts` exports component + `export type` for props interface (10 components)
+- **Barrel exports**: `components/index.ts` exports component + `export type` for props interface (13 components including DashboardPage, AppLayout, Sidebar)
 - **Touch targets**: All interactive elements >= 44x44px (WCAG 2.5.5)
 - **Heading hierarchy**: `<h1>` in DashboardHeader (title) -> `<h2>` in TreePanel (gender sections). Required by WCAG 1.3.1.
 - See [apps/labor-market-dashboard/CLAUDE.md](apps/labor-market-dashboard/CLAUDE.md) for full details

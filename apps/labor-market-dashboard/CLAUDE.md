@@ -31,11 +31,16 @@ apps/labor-market-dashboard/
   package.json            # type: "module", @template/config as workspace:*
   src/
     main.tsx              # React entry point (StrictMode, named import of App)
-    App.tsx               # Composition root (named export, wires useTreeState to DashboardHeader + 2 GenderSections)
+    App.tsx               # Router boundary (named export, useTreeState above Router, wouter hash routing)
     App.css               # App-specific styles (placeholder)
     index.css             # Tailwind entry + custom range input CSS
     vite-env.d.ts         # Vite client type declarations
     components/
+      DashboardPage.tsx   # Main dashboard view (extracted from former App.tsx -- DashboardHeader + 2 GenderSections)
+      layout/
+        AppLayout.tsx     # Flex layout shell (sidebar + content area, local isSidebarOpen state)
+        Sidebar.tsx       # Collapsible nav (wouter Link, useLocation for active styling)
+        index.ts          # Layout barrel: AppLayout, Sidebar
       DashboardHeader.tsx # Sticky header bar (h1 title, population input, ModeToggle, ResetButton)
       GenderSection.tsx   # Container pairing TreePanel + PieChartPanel per gender
       ModeToggle.tsx      # Auto/free balance mode toggle switch (role="switch")
@@ -46,7 +51,7 @@ apps/labor-market-dashboard/
       ChartLegend.tsx     # Scrollable legend with color swatches (semantic ul/li)
       TreePanel.tsx       # Single-gender tree container (expand/collapse state, deviation warnings)
       TreeRow.tsx         # Recursive tree row (React.memo, chevron, indentation, Slider, mini pie charts)
-      index.ts            # Barrel: 10 components + export type for props interfaces
+      index.ts            # Barrel: 13 components (10 original + DashboardPage + layout re-exports) + export type for props interfaces
     types/
       tree.ts             # Core data model: TreeNode, GenderSplit, BalanceMode, DashboardState
       actions.ts          # TreeAction discriminated union (5 action types for useReducer)
@@ -89,6 +94,9 @@ apps/labor-market-dashboard/
         ChartLegend.test.tsx   # 5 tests: list items, labels, semantic markup, maxHeight
         TreeRow.test.tsx       # 32 tests: rendering, chevron, expand/collapse, indent, Slider, deviation warnings, mini pie charts
         TreePanel.test.tsx     # 16 tests: single-gender API, industry nodes, expand/collapse, deviation warnings, a11y
+        DashboardPage.test.tsx # 7 tests: header, population input, gender sections, pie charts, main area
+        layout/
+          Sidebar.test.tsx     # 13 tests: nav landmark, active state, toggle, keyboard nav, a11y
       hooks/
         useTreeState.test.ts # 19 tests: all 5 actions, cascading recalc, performance
 ```
@@ -282,12 +290,14 @@ export type { PercentageUpdate, SiblingInfo } from './...';
 
 ### Component Categories
 
-Components fall into five categories:
-1. **Composition root** (App): Wires hook state to child components. No business logic, no tests of its own -- verified via child component tests.
-2. **Composite header** (DashboardHeader): Composes leaf controls (ModeToggle, ResetButton) with a controlled population input. Follows the Slider controlled-input pattern (local string state, useEffect sync, commit on blur/Enter).
-3. **Interactive leaf controls** (Slider, ModeToggle, ResetButton): Controlled, dispatch actions upward, minimal local state. ModeToggle uses `role="switch"` + `aria-checked`. ResetButton uses `window.confirm()` guard.
-4. **Read-only visualization** (PieChartPanel, ChartTooltip, ChartLegend): Receive data as props, no internal state, no dispatch.
-5. **Section containers** (GenderSection, TreePanel + TreeRow): GenderSection pairs TreePanel + PieChartPanel per gender. TreePanel manages UI-only expand/collapse state and deviation warnings. TreeRow is recursive with `React.memo`, renders mini subcategory pie charts for expanded nodes.
+Components fall into seven categories:
+1. **Router boundary** (App): Calls `useTreeState()` above `<Router>`, wraps routes in `AppLayout`. No business logic, no tests of its own.
+2. **Page components** (DashboardPage, future ConfigPage): Receive `{ state, dispatch }` props, compose section-level components for a full page view.
+3. **Layout shell** (AppLayout, Sidebar): AppLayout is a flex shell (sidebar + content area) with local `isSidebarOpen` state. Sidebar is a controlled collapsible nav using wouter `Link`/`useLocation`.
+4. **Composite header** (DashboardHeader): Composes leaf controls (ModeToggle, ResetButton) with a controlled population input. Follows the Slider controlled-input pattern (local string state, useEffect sync, commit on blur/Enter).
+5. **Interactive leaf controls** (Slider, ModeToggle, ResetButton): Controlled, dispatch actions upward, minimal local state. ModeToggle uses `role="switch"` + `aria-checked`. ResetButton uses `window.confirm()` guard.
+6. **Read-only visualization** (PieChartPanel, ChartTooltip, ChartLegend): Receive data as props, no internal state, no dispatch.
+7. **Section containers** (GenderSection, TreePanel + TreeRow): GenderSection pairs TreePanel + PieChartPanel per gender. TreePanel manages UI-only expand/collapse state and deviation warnings. TreeRow is recursive with `React.memo`, renders mini subcategory pie charts for expanded nodes.
 
 ### Slider Component Pattern
 
@@ -312,14 +322,49 @@ The PieChartPanel + ChartTooltip + ChartLegend form the **read-only visualizatio
 - **Size variants**: `size` prop (`'standard'` = 300px, `'mini'` = 200px) controls chart height and radius.
 - **Accessibility**: `<figure role="img" aria-label={...}>` wrapper + `sr-only` data `<table>` fallback for screen readers. Color swatches use `aria-hidden="true"`.
 
-### Composition Root Pattern (App.tsx)
+### Router Boundary Pattern (App.tsx)
 
-App.tsx is a pure **composition root** -- it wires `useTreeState()` and distributes state/dispatch to child components. It contains:
-- No business logic, no conditional rendering, no local state
-- `DashboardHeader` (sticky) at top
-- `<main>` with `grid grid-cols-1 lg:grid-cols-2 gap-6` containing 2 `GenderSection` instances
+App.tsx is the **router boundary** -- it calls `useTreeState()` ABOVE the `<Router>` so state persists across route transitions. Structure:
+
+```
+App.tsx
+  useTreeState()          -- state above router (persists across navigation)
+  <Router hook={useHashLocation}>
+    <AppLayout>           -- sidebar + content shell
+      <Switch>
+        <Route path="/">
+          <DashboardPage state dispatch />
+        </Route>
+        <Route path="/config">
+          placeholder (subtask 11.3 replaces with ConfigPage)
+        </Route>
+      </Switch>
+    </AppLayout>
+  </Router>
+```
+
+- **wouter v3 imports**: `Router`, `Route`, `Switch` from `wouter`; `useHashLocation` from `wouter/use-hash-location`
+- **`<Switch>`** ensures exclusive route matching (prevents `/` from also matching `/config`)
+- **No React Context** for state passing -- pages receive `state`/`dispatch` via props from Route children
+- **Hash routing** (`/#/`, `/#/config`) for GitHub Pages compatibility (no server-side routing needed)
+- No direct tests -- routing verified via page and layout component test suites
+
+### DashboardPage Pattern
+
+DashboardPage extracts the former App.tsx content into a dedicated page component:
+- Receives `{ state, dispatch }` props -- same interface future pages (ConfigPage) will use
+- Renders `DashboardHeader` (sticky) + `<main>` with 2 `GenderSection` instances
+- Uses Fragment (`<>...</>`) as root (no wrapper div -- AppLayout provides background and scroll container)
 - Male: `state.tree.children[0]`, Female: `state.tree.children[1]`
-- No direct tests -- all behavior verified via child component test suites
+
+### Layout Components Pattern (`components/layout/`)
+
+Layout components live in a `layout/` subdirectory with their own barrel export:
+
+- **AppLayout**: Pure layout shell. `children: React.ReactNode` is the only prop. Local `isSidebarOpen` state (UI-only, not in reducer). Flex row: `<Sidebar>` left + scrollable content area right. `h-screen` on root container.
+- **Sidebar**: Collapsible navigation. Receives `isOpen`/`onToggle` props (controlled by AppLayout). Uses wouter `<Link href="...">` for navigation. Active link detection via `useLocation()` + `aria-current="page"`. Collapsed: icon-only (`w-14`). Expanded: icon + text (`w-56`). Smooth transition via `transition-all duration-200`.
+- **wouter Link API**: Use `href` prop (not `to`) for wouter v3. `className` can be a callback `(isActive: boolean) => string` for active styling. `aria-current="page"` set manually via `useLocation()` comparison.
+- **Sidebar starts collapsed** (`useState(false)`) -- this is a deliberate UX choice.
 
 ### Dashboard Header Pattern
 
@@ -397,7 +442,7 @@ export { Slider } from './Slider';
 export type { SliderProps } from './Slider';
 ```
 
-Value export for the component, `export type` for the props interface. All 10 components follow this pattern: ChartLegend, ChartTooltip, DashboardHeader, GenderSection, ModeToggle, PieChartPanel, ResetButton, Slider, TreePanel, TreeRow.
+Value export for the component, `export type` for the props interface. All 13 components follow this pattern: ChartLegend, ChartTooltip, DashboardHeader, DashboardPage, GenderSection, ModeToggle, PieChartPanel, ResetButton, Slider, TreePanel, TreeRow + layout re-exports (AppLayout, Sidebar). Layout components also have their own barrel at `components/layout/index.ts`.
 
 ## Format Utility (`src/utils/format.ts`)
 
@@ -458,8 +503,29 @@ src/components/ChartTooltip.tsx   -->  src/__tests__/components/ChartTooltip.tes
 src/components/ChartLegend.tsx    -->  src/__tests__/components/ChartLegend.test.tsx
 src/components/TreePanel.tsx      -->  src/__tests__/components/TreePanel.test.tsx
 src/components/TreeRow.tsx        -->  src/__tests__/components/TreeRow.test.tsx
+src/components/DashboardPage.tsx  -->  src/__tests__/components/DashboardPage.test.tsx
+src/components/layout/Sidebar.tsx -->  src/__tests__/components/layout/Sidebar.test.tsx
 src/hooks/useTreeState.ts      -->  src/__tests__/hooks/useTreeState.test.ts
 ```
+
+### Wouter Routing Tests (memoryLocation)
+
+Components that use wouter (`Link`, `useLocation`) must be wrapped in a `<Router>` during tests. Use `memoryLocation` for test isolation:
+
+```typescript
+import { Router } from 'wouter';
+import { memoryLocation } from 'wouter/memory-location';
+
+function renderWithRouter(ui: React.ReactElement, options?: { path?: string }) {
+  const { hook } = memoryLocation({ path: options?.path ?? '/' });
+  return render(<Router hook={hook}>{ui}</Router>);
+}
+```
+
+- **`memoryLocation`** avoids dependency on `window.location.hash` -- each test gets its own in-memory location
+- **Link hrefs in tests**: With `memoryLocation`, links render plain paths (`/`, `/config`), not hash paths (`/#/`, `/#/config`). Assert on link role and accessible name, not exact href values.
+- **Active link testing**: Set `path` option to control which link appears active (has `aria-current="page"`)
+- **No ResizeObserver mock needed**: Routing/layout tests without Recharts do not need the ResizeObserver mock
 
 ### Recharts Testing in jsdom
 
@@ -558,4 +624,8 @@ Use `import type` for type-only imports in test files. The `expectTypeOf` patter
 - Use CSS custom properties or Tailwind class names for Recharts `fill`/`stroke` props -- Recharts requires hex color strings directly
 - Pass the full tree root to TreePanel -- TreePanel accepts `genderNode: TreeNode` (single gender), not the root. App.tsx passes `state.tree.children[0]` (male) and `state.tree.children[1]` (female) to two separate GenderSection/TreePanel instances
 - Remove the `<h1>` from DashboardHeader -- it is required for WCAG 1.3.1 heading hierarchy. TreePanel uses `<h2>` for gender sections, which must have a parent `<h1>`
-- Add business logic to App.tsx -- it is a pure composition root. All business logic belongs in the reducer, utilities, or individual components
+- Add business logic to App.tsx -- it is a router boundary only. All business logic belongs in the reducer, utilities, or individual page/section components
+- Move `useTreeState()` inside the `<Router>` -- it MUST be called above `<Router>` so state persists across route transitions
+- Use React Context to pass state/dispatch to pages -- props are sufficient and more explicit. Each Route child receives `state`/`dispatch` directly from App.tsx's closure
+- Use wouter `to` prop instead of `href` on `<Link>` -- `href` is the idiomatic prop for wouter v3
+- Wrap routing components in tests without `memoryLocation` -- always use `memoryLocation` from `wouter/memory-location` for test isolation (avoids `window.location.hash` side effects between tests)

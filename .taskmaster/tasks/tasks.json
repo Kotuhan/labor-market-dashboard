@@ -373,7 +373,7 @@
             "description": "Install wouter, create slugify utility, add tree add/remove functions, extend TreeAction with 4 new types, implement reducer handlers, create ADR-0006",
             "dependencies": [],
             "details": "TL design Steps 1-5. Install wouter (~2KB), create Ukrainian-to-slug transliteration, add addChildToParent/removeChildFromParent/generateUniqueId to treeUtils, extend TreeAction union, add reducer case handlers.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests for slugify, tree helpers, and all 4 new reducer actions. Build passes, lint passes."
           },
           {
@@ -404,11 +404,22 @@
             "testStrategy": "All tests pass, lint clean, build succeeds, bundle < 500KB. Manual smoke test of full workflow."
           }
         ]
+      },
+      {
+        "id": 12,
+        "title": "Gender Comparison Bar Chart by Industry",
+        "description": "Add a full-width grouped bar chart at the top of the dashboard comparing male vs female workers by industry. X-axis: industries (grouped pairs), Y-axis: thousands of workers. Two bars per industry (male/female) using existing GENDER_COLORS.",
+        "details": "Create a new GenderBarChart component using Recharts BarChart with grouped bars (male blue, female pink). Place above the existing gender sections in the dashboard. X-axis shows industry labels (Ukrainian), Y-axis shows absolute values in thousands. Chart should be responsive, full-width, and use the existing tree state data. Follows the read-only visualization pattern (React.memo, no dispatch).",
+        "testStrategy": "Verify chart renders all 16 industries with correct male/female values. Test responsive behavior. Verify ARIA labels and accessibility. Ensure chart updates when sliders change values.",
+        "priority": "medium",
+        "dependencies": [9],
+        "status": "backlog",
+        "subtasks": []
       }
     ],
     "metadata": {
       "created": "2026-02-17T09:25:31.553Z",
-      "updated": "2026-02-18T10:00:00.000Z",
+      "updated": "2026-02-19T10:00:00.000Z",
       "description": "Tasks for master context"
     }
   }
