@@ -169,6 +169,7 @@ All apps extend shared configs from `packages/config/` (see [packages/config/CLA
 ### Chart Color Conventions
 
 - **Industry colors**: Fixed KVED-code-to-hex mapping in `src/data/chartColors.ts` -- ensures consistent colors across male/female charts and future chart types
+- **Dynamic colors**: `DYNAMIC_COLOR_PALETTE` (8 Tailwind-600 hex values) for user-added industries without a KVED code; GenderSection merges static + dynamic into a single `colorMap` via `useMemo`
 - **Hex values required**: Recharts `<Cell fill={color}>` needs hex strings, not Tailwind class names or CSS custom properties
 - **Subcategory colors**: Opacity-based shading from parent industry color via `generateSubcategoryColors()`
 - **Ghost slice**: Gray unallocated slice in free mode when sum < 100%; overflow badge when > 100%

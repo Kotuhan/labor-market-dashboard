@@ -145,3 +145,12 @@
 - **Commit**: b1e8a23
 - **Summary**: Added collapsible sidebar, AppLayout shell, DashboardPage (extracted from App.tsx), restructured App.tsx as router boundary with wouter useHashLocation. Routes: /#/ (dashboard), /#/config (placeholder). 343 tests pass (20 new). CLAUDE.md files updated with routing patterns.
 - **Remaining subtasks**: 2 of 4
+
+---
+
+## 2026-02-19 06:00 - Subtask 11.3 Complete
+
+- **Subtask**: 11.3-config-page
+- **Commit**: 288281f
+- **Summary**: Built 6 config components (ConfirmDialog, AddNodeForm, ConfigSubcategoryRow, ConfigIndustryRow, ConfigGenderSection, ConfigPage) with native dialog, callback removal flow, useRef auto-expand. Wired into /#/config route. 401 tests pass (36 new).
+- **Remaining subtasks**: 1 of 4

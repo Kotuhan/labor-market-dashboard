@@ -48,3 +48,21 @@ export const OVERFLOW_INDICATOR_COLOR = '#FCA5A5'; // red-300
 
 /** Default fallback color when a node has no KVED code or matching color. */
 export const DEFAULT_NODE_COLOR = '#94A3B8'; // slate-400
+
+/**
+ * Dynamic color palette for user-added industries that lack a KVED code.
+ *
+ * 8 visually distinct hex colors chosen to avoid collision with the 16
+ * INDUSTRY_COLORS values and GENDER_COLORS. When more than 8 custom
+ * industries exist, colors cycle from the start of the palette.
+ */
+export const DYNAMIC_COLOR_PALETTE: readonly string[] = [
+  '#0D9488', // teal-600
+  '#9333EA', // purple-600
+  '#CA8A04', // yellow-600
+  '#DC2626', // red-600
+  '#2563EB', // blue-600
+  '#16A34A', // green-600
+  '#EA580C', // orange-600
+  '#DB2777', // pink-600
+];

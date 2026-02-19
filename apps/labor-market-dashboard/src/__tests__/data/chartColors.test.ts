@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 
 import {
   DEFAULT_NODE_COLOR,
+  DYNAMIC_COLOR_PALETTE,
   GENDER_COLORS,
   GHOST_SLICE_COLOR,
   INDUSTRY_COLORS,
@@ -55,5 +56,30 @@ describe('Special colors', () => {
 
   it('defines default node color', () => {
     expect(DEFAULT_NODE_COLOR).toBe('#94A3B8');
+  });
+});
+
+describe('DYNAMIC_COLOR_PALETTE', () => {
+  it('has exactly 8 colors', () => {
+    expect(DYNAMIC_COLOR_PALETTE).toHaveLength(8);
+  });
+
+  it('all values are valid hex color strings', () => {
+    const hexPattern = /^#[0-9A-Fa-f]{6}$/;
+    for (const color of DYNAMIC_COLOR_PALETTE) {
+      expect(color).toMatch(hexPattern);
+    }
+  });
+
+  it('has no duplicate colors', () => {
+    const unique = new Set(DYNAMIC_COLOR_PALETTE);
+    expect(unique.size).toBe(DYNAMIC_COLOR_PALETTE.length);
+  });
+
+  it('does not collide with any INDUSTRY_COLORS value', () => {
+    const industryColorValues = new Set(Object.values(INDUSTRY_COLORS));
+    for (const color of DYNAMIC_COLOR_PALETTE) {
+      expect(industryColorValues.has(color)).toBe(false);
+    }
   });
 });

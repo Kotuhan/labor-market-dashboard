@@ -1,4 +1,6 @@
-import { INDUSTRY_COLORS } from '@/data/chartColors';
+import { useMemo } from 'react';
+
+import { DYNAMIC_COLOR_PALETTE, INDUSTRY_COLORS } from '@/data/chartColors';
 import type { BalanceMode, TreeAction, TreeNode } from '@/types';
 
 import { PieChartPanel } from './PieChartPanel';
@@ -14,6 +16,8 @@ export interface GenderSectionProps {
   balanceMode: BalanceMode;
   /** Dispatch function from useTreeState */
   dispatch: React.Dispatch<TreeAction>;
+  /** When true, chevrons appear on the right and indentation is from the right */
+  mirrored: boolean;
 }
 
 /**
@@ -28,7 +32,24 @@ export function GenderSection({
   genderSiblings,
   balanceMode,
   dispatch,
+  mirrored,
 }: GenderSectionProps) {
+  const colorMap = useMemo(() => {
+    const merged: Record<string, string> = { ...INDUSTRY_COLORS };
+
+    // Assign dynamic colors to industries without a KVED code
+    let dynamicIndex = 0;
+    for (const child of genderNode.children) {
+      if (!child.kvedCode && !(child.id in merged)) {
+        merged[child.id] =
+          DYNAMIC_COLOR_PALETTE[dynamicIndex % DYNAMIC_COLOR_PALETTE.length];
+        dynamicIndex++;
+      }
+    }
+
+    return merged;
+  }, [genderNode.children]);
+
   return (
     <div className="flex flex-col gap-4">
       <TreePanel
@@ -36,10 +57,11 @@ export function GenderSection({
         genderSiblings={genderSiblings}
         balanceMode={balanceMode}
         dispatch={dispatch}
+        mirrored={mirrored}
       />
       <PieChartPanel
         nodes={genderNode.children}
-        colorMap={INDUSTRY_COLORS}
+        colorMap={colorMap}
         ariaLabel={`Розподіл галузей -- ${genderNode.label}`}
         balanceMode={balanceMode}
       />

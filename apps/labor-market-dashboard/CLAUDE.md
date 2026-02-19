@@ -406,9 +406,10 @@ DashboardHeader composes the sticky top bar:
 
 ### GenderSection Pattern
 
-GenderSection is a thin **container component** (44 lines) pairing a gender's TreePanel + PieChartPanel:
+GenderSection is a thin **container component** pairing a gender's TreePanel + PieChartPanel:
 - Receives `genderNode` (single gender TreeNode), passes it to both children
-- PieChartPanel receives `nodes={genderNode.children}` with `INDUSTRY_COLORS` color map
+- Builds a merged `colorMap` via `useMemo`: `INDUSTRY_COLORS` (KVED-keyed) + dynamic assignments from `DYNAMIC_COLOR_PALETTE` for custom industries (node-ID-keyed)
+- PieChartPanel receives `nodes={genderNode.children}` with the merged `colorMap`
 - Layout: vertical flex (`flex-col gap-4`), not side-by-side (columns are already narrow in the 2-column grid)
 
 ### Tree Panel Pattern (Single-Gender Container + Recursive)
@@ -509,11 +510,13 @@ TreeRow renders a mini `PieChartPanel` for expanded nodes with children:
 ### Color Palette (`src/data/chartColors.ts`)
 
 - `INDUSTRY_COLORS`: Fixed KVED-code-to-hex mapping (16 colors from Tailwind palette). Same industry = same color across male/female charts.
+- `DYNAMIC_COLOR_PALETTE`: 8 Tailwind-600 hex colors for user-added industries without a KVED code. Colors cycle when more than 8 custom industries exist. Chosen to avoid collision with the 16 `INDUSTRY_COLORS` values.
 - `GENDER_COLORS`: `{ male: '#3B82F6', female: '#EC4899' }` (blue-500, pink-500). Note: `male` hex collides with `INDUSTRY_COLORS.G` (Торгівля) -- intentional, since bar chart uses gender colors while pie charts use industry colors
 - `GHOST_SLICE_COLOR`: `#E2E8F0` (slate-200) for free mode unallocated percentage
 - `OVERFLOW_INDICATOR_COLOR`: `#FCA5A5` (red-300)
 - `DEFAULT_NODE_COLOR`: `#94A3B8` (slate-400) fallback
 - Subcategory mini-chart colors: Auto-generated opacity-based shades via `generateSubcategoryColors()` (100% to 40% opacity blended against white)
+- **Dynamic color assignment**: GenderSection builds a merged `colorMap` via `useMemo` -- spreads `INDUSTRY_COLORS` (KVED-keyed) then assigns `DYNAMIC_COLOR_PALETTE` colors to custom industries (node-ID-keyed, no KVED code). This merged map is passed to PieChartPanel.
 
 ### Barrel Export Convention (components/)
 

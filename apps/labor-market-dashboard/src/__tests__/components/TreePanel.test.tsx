@@ -96,6 +96,7 @@ function makeProps(overrides?: Partial<TreePanelProps>): TreePanelProps {
     genderSiblings: [genderNode, makeFemaleSibling()],
     balanceMode: 'auto',
     dispatch: vi.fn(),
+    mirrored: false,
     ...overrides,
   };
 }
@@ -132,85 +133,112 @@ describe('TreePanel gender heading', () => {
     expect(within(header).getByText('6 000 тис.')).toBeInTheDocument();
   });
 
-  it('does not render collapse control on gender node', () => {
+  it('renders industry list toggle on gender heading', () => {
     render(<TreePanel {...makeProps()} />);
 
     expect(
-      screen.queryByRole('button', { name: /collapse чоловіки/i }),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: /expand чоловіки/i }),
-    ).not.toBeInTheDocument();
-  });
-});
-
-// -------------------------------------------------------
-// Industry visibility tests
-// -------------------------------------------------------
-describe('TreePanel industry nodes', () => {
-  it('shows all industry nodes on initial render', () => {
-    render(<TreePanel {...makeProps()} />);
-
-    expect(screen.getByText('Торгівля')).toBeInTheDocument();
-    expect(screen.getByText('IT та телеком')).toBeInTheDocument();
-  });
-
-  it('does not show chevron on leaf industry nodes', () => {
-    render(<TreePanel {...makeProps()} />);
-
-    expect(
-      screen.queryByRole('button', { name: /expand торгівля$/i }),
-    ).not.toBeInTheDocument();
-  });
-
-  it('shows chevron on industry nodes with children', () => {
-    render(<TreePanel {...makeProps()} />);
-
-    expect(
-      screen.getByRole('button', { name: /collapse it та телеком/i }),
+      screen.getByRole('button', { name: /expand чоловіки/i }),
     ).toBeInTheDocument();
   });
 });
 
 // -------------------------------------------------------
-// Expand/collapse integration tests
+// Industry list collapse/expand tests
 // -------------------------------------------------------
-describe('TreePanel expand/collapse', () => {
-  it('shows subcategories on initial render (IT starts expanded)', () => {
+describe('TreePanel industry list toggle', () => {
+  it('hides industry nodes by default (collapsed)', () => {
     render(<TreePanel {...makeProps()} />);
 
+    expect(screen.queryByText('Торгівля')).not.toBeInTheDocument();
+    expect(screen.queryByText('IT та телеком')).not.toBeInTheDocument();
+  });
+
+  it('shows industry nodes when expanded', async () => {
+    const user = userEvent.setup();
+    render(<TreePanel {...makeProps()} />);
+
+    await user.click(screen.getByRole('button', { name: /expand чоловіки/i }));
+
+    expect(screen.getByText('Торгівля')).toBeInTheDocument();
+    expect(screen.getByText('IT та телеком')).toBeInTheDocument();
+  });
+
+  it('hides industry nodes again when collapsed', async () => {
+    const user = userEvent.setup();
+    render(<TreePanel {...makeProps()} />);
+
+    // Expand
+    await user.click(screen.getByRole('button', { name: /expand чоловіки/i }));
+    expect(screen.getByText('Торгівля')).toBeInTheDocument();
+
+    // Collapse
+    await user.click(screen.getByRole('button', { name: /collapse чоловіки/i }));
+    expect(screen.queryByText('Торгівля')).not.toBeInTheDocument();
+  });
+
+  it('has aria-expanded="false" when collapsed', () => {
+    render(<TreePanel {...makeProps()} />);
+
+    expect(
+      screen.getByRole('button', { name: /expand чоловіки/i }),
+    ).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  it('has aria-expanded="true" when expanded', async () => {
+    const user = userEvent.setup();
+    render(<TreePanel {...makeProps()} />);
+
+    await user.click(screen.getByRole('button', { name: /expand чоловіки/i }));
+
+    expect(
+      screen.getByRole('button', { name: /collapse чоловіки/i }),
+    ).toHaveAttribute('aria-expanded', 'true');
+  });
+
+  it('keeps gender ratio slider always visible when collapsed', () => {
+    render(<TreePanel {...makeProps()} />);
+
+    // Gender slider should be present even when industries are hidden
+    expect(screen.getByRole('slider')).toBeInTheDocument();
+  });
+});
+
+// -------------------------------------------------------
+// IT subcategory expand/collapse tests
+// -------------------------------------------------------
+describe('TreePanel IT subcategory expand/collapse', () => {
+  it('auto-expands IT subcategories when industries are shown (auto-expand effect)', async () => {
+    const user = userEvent.setup();
+    render(<TreePanel {...makeProps()} />);
+
+    // First expand industries
+    await user.click(screen.getByRole('button', { name: /expand чоловіки/i }));
+
+    // IT subcategories should be visible (auto-expand adds male-j to expandedIds on mount)
     expect(screen.getByText('Розробка ПЗ')).toBeInTheDocument();
     expect(screen.getByText('QA / Тестування')).toBeInTheDocument();
   });
 
-  it('hides subcategories when IT is collapsed', async () => {
+  it('hides IT subcategories when IT is collapsed by user', async () => {
     const user = userEvent.setup();
     render(<TreePanel {...makeProps()} />);
 
-    const collapseBtn = screen.getByRole('button', {
-      name: /collapse it та телеком/i,
-    });
-    await user.click(collapseBtn);
+    // Expand industries (IT is auto-expanded), then collapse IT
+    await user.click(screen.getByRole('button', { name: /expand чоловіки/i }));
+    await user.click(screen.getByRole('button', { name: /collapse it та телеком/i }));
 
     expect(screen.queryByText('Розробка ПЗ')).not.toBeInTheDocument();
     expect(screen.queryByText('QA / Тестування')).not.toBeInTheDocument();
   });
 
-  it('shows subcategories again when IT is re-expanded', async () => {
+  it('shows IT subcategories again when re-expanded after collapse', async () => {
     const user = userEvent.setup();
     render(<TreePanel {...makeProps()} />);
 
-    // Collapse
-    const collapseBtn = screen.getByRole('button', {
-      name: /collapse it та телеком/i,
-    });
-    await user.click(collapseBtn);
-
-    // Re-expand
-    const expandBtn = screen.getByRole('button', {
-      name: /expand it та телеком/i,
-    });
-    await user.click(expandBtn);
+    // Expand industries (IT is auto-expanded), collapse IT, then re-expand IT
+    await user.click(screen.getByRole('button', { name: /expand чоловіки/i }));
+    await user.click(screen.getByRole('button', { name: /collapse it та телеком/i }));
+    await user.click(screen.getByRole('button', { name: /expand it та телеком/i }));
 
     expect(screen.getByText('Розробка ПЗ')).toBeInTheDocument();
     expect(screen.getByText('QA / Тестування')).toBeInTheDocument();
@@ -241,7 +269,8 @@ describe('TreePanel accessibility', () => {
 // Deviation warning tests (free mode)
 // -------------------------------------------------------
 describe('TreePanel deviation warnings', () => {
-  it('shows deviation warning in free mode when industries do not sum to 100%', () => {
+  it('shows deviation warning in free mode when industries do not sum to 100%', async () => {
+    const user = userEvent.setup();
     const genderNode = makeTestGenderNode();
     // Set industries to sum to 90% (50 + 40 = 90, deviation = -10)
     genderNode.children[1] = {
@@ -251,12 +280,16 @@ describe('TreePanel deviation warnings', () => {
 
     render(<TreePanel {...makeProps({ genderNode, balanceMode: 'free' })} />);
 
+    // Expand industries to see deviation warning
+    await user.click(screen.getByRole('button', { name: /expand чоловіки/i }));
+
     expect(screen.getByRole('status')).toHaveTextContent(
       'Сума: 90.0% (-10.0%)',
     );
   });
 
-  it('shows positive deviation warning when industries sum over 100%', () => {
+  it('shows positive deviation warning when industries sum over 100%', async () => {
+    const user = userEvent.setup();
     const genderNode = makeTestGenderNode();
     // Set industries to sum to 110% (50 + 60 = 110, deviation = +10)
     genderNode.children[1] = {
@@ -266,12 +299,15 @@ describe('TreePanel deviation warnings', () => {
 
     render(<TreePanel {...makeProps({ genderNode, balanceMode: 'free' })} />);
 
+    await user.click(screen.getByRole('button', { name: /expand чоловіки/i }));
+
     expect(screen.getByRole('status')).toHaveTextContent(
       'Сума: 110.0% (+10.0%)',
     );
   });
 
-  it('does not show deviation warning in auto mode', () => {
+  it('does not show deviation warning in auto mode', async () => {
+    const user = userEvent.setup();
     const genderNode = makeTestGenderNode();
     // Set deviation but in auto mode
     genderNode.children[1] = {
@@ -281,13 +317,107 @@ describe('TreePanel deviation warnings', () => {
 
     render(<TreePanel {...makeProps({ genderNode, balanceMode: 'auto' })} />);
 
+    await user.click(screen.getByRole('button', { name: /expand чоловіки/i }));
+
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
-  it('does not show deviation warning in free mode when sum is exactly 100%', () => {
+  it('does not show deviation warning in free mode when sum is exactly 100%', async () => {
+    const user = userEvent.setup();
     // Default test node: 50 + 50 = 100% -- no deviation
     render(<TreePanel {...makeProps({ balanceMode: 'free' })} />);
 
+    await user.click(screen.getByRole('button', { name: /expand чоловіки/i }));
+
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+});
+
+// -------------------------------------------------------
+// Mirrored layout tests
+// -------------------------------------------------------
+describe('TreePanel mirrored layout', () => {
+  it('renders heading toggle with flex-row-reverse when mirrored', () => {
+    render(<TreePanel {...makeProps({ mirrored: true })} />);
+
+    const toggle = screen.getByRole('button', { name: /expand чоловіки/i });
+    expect(toggle.className).toContain('flex-row-reverse');
+  });
+
+  it('renders heading toggle without flex-row-reverse when not mirrored', () => {
+    render(<TreePanel {...makeProps({ mirrored: false })} />);
+
+    const toggle = screen.getByRole('button', { name: /expand чоловіки/i });
+    expect(toggle.className).not.toContain('flex-row-reverse');
+  });
+});
+
+// -------------------------------------------------------
+// Auto-expand tests
+// -------------------------------------------------------
+describe('TreePanel auto-expand', () => {
+  it('auto-expands an industry that gains children (re-render with children added)', async () => {
+    const user = userEvent.setup();
+    const props = makeProps();
+    const { rerender } = render(<TreePanel {...props} />);
+
+    // Expand the industry list
+    await user.click(screen.getByRole('button', { name: /expand чоловіки/i }));
+
+    // Торгівля is a leaf -- no expand chevron, no subcategory visible
+    expect(
+      screen.queryByRole('button', { name: /expand торгівля/i }),
+    ).not.toBeInTheDocument();
+
+    // Re-render with Торгівля now having a child subcategory
+    const withSubcategory = makeTestGenderNode({
+      children: [
+        {
+          ...makeTestGenderNode().children[0], // male-g (Торгівля)
+          children: [
+            {
+              id: 'male-g-test',
+              label: 'Тестова підкатегорія',
+              percentage: 100,
+              defaultPercentage: 0,
+              absoluteValue: 3_000_000,
+              genderSplit: { male: 100, female: 0 },
+              isLocked: false,
+              children: [],
+            },
+          ],
+        },
+        makeTestGenderNode().children[1], // male-j (IT) unchanged
+      ],
+    });
+
+    rerender(<TreePanel {...makeProps({ genderNode: withSubcategory })} />);
+
+    // The subcategory should be automatically visible because auto-expand
+    // added male-g to expandedIds
+    expect(screen.getByText('Тестова підкатегорія')).toBeInTheDocument();
+  });
+
+  it('does not re-expand a node that was manually collapsed by the user', async () => {
+    const user = userEvent.setup();
+    const props = makeProps();
+    const { rerender } = render(<TreePanel {...props} />);
+
+    // Expand the industry list
+    await user.click(screen.getByRole('button', { name: /expand чоловіки/i }));
+
+    // The auto-expand effect should have expanded IT (male-j) since it has children.
+    // Verify subcategories are visible.
+    expect(screen.getByText('Розробка ПЗ')).toBeInTheDocument();
+
+    // User manually collapses IT
+    await user.click(screen.getByRole('button', { name: /collapse it та телеком/i }));
+    expect(screen.queryByText('Розробка ПЗ')).not.toBeInTheDocument();
+
+    // Re-render with the same props (no structural change)
+    rerender(<TreePanel {...props} />);
+
+    // IT should remain collapsed -- auto-expand does not fight user's explicit collapse
+    expect(screen.queryByText('Розробка ПЗ')).not.toBeInTheDocument();
   });
 });
